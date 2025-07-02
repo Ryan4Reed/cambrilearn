@@ -4,6 +4,10 @@ import os
 
 reference_date = pd.Timestamp("2024-07-01")
 
+###########################################################
+#######################GENERAL METHODS#####################
+###########################################################
+
 
 def setup_logging():
     """
@@ -85,6 +89,11 @@ def drop_rows_with_nan(data: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     return data
 
 
+###########################################################
+#############CLAIMS_DATA SPECIFIC METHODS##################
+###########################################################
+
+
 def recreate_months_since_joined(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
     """
     Recreate the months_since_joined column based on up to date data.
@@ -125,7 +134,7 @@ def recreate_months_since_last_claim(data: pd.DataFrame, col_name: str) -> pd.Da
     return data
 
 
-def recreate_dry_months(data: pd.DataFrame, col_names: str) -> pd.DataFrame:
+def recreate_dry_months(data: pd.DataFrame, col_names: list[str]) -> pd.DataFrame:
     """
     Recreate dry_months column based on up to date data.
     Also adding four_years_dry column.
@@ -142,7 +151,19 @@ def recreate_dry_months(data: pd.DataFrame, col_names: str) -> pd.DataFrame:
         data[column] = (data["months_since_last_claim"] > mapping[column]).astype(int)
 
     logger.info(f"Successfully created columns: {col_names}")
-    pd.set_option("display.max_columns", 50)
+    return data
+
+
+def recreate_is_closed(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
+    """
+    Recreate is_close based on cutoff date.
+    """
+    data = drop_columns(data=data, columns=[col_name])
+    result_date = reference_date - pd.DateOffset(
+        months=17
+    )  # anything 18 months prior or more would be closed
+    data[col_name] = data["date_received"] >= result_date
+    logger.info(f"Successfully created column: {col_name}")
     logger.info(data)
     return data
 
@@ -176,9 +197,7 @@ def clean_industry_segment(data: pd.DataFrame) -> pd.DataFrame:
 def prep_claims_data() -> pd.DataFrame:
     data = pd.read_csv("data/all_claims_data.csv")
     # drop irrelevant columns
-    data = drop_columns(
-        data=data, columns=["case_number", "is_closed", "is_deleted", "type"]
-    )
+    data = drop_columns(data=data, columns=["case_number", "is_deleted", "type"])
 
     # Convert unknown account_id entries to NaN
     data = convert_entries_to_nan(
@@ -205,14 +224,34 @@ def prep_claims_data() -> pd.DataFrame:
         data=data,
         col_names=["two_months_dry", "six_months_dry", "one_year_dry", "two_years_dry"],
     )
+
+    data = recreate_is_closed(data=data, col_name="is_closed")
     # drop date columns now that we no longer need them
     data = drop_columns(data=data, columns=["date_received", "loss_date", "start_date"])
 
-    # Convert Unassigned industry_segment entries to NaN
+    # Convert Unassigned industry_segment entries to NaN, clean, and drop remaining NaNs
     data = convert_entries_to_nan(
         data=data, column="industry_segment", entries=["Unassigned"]
     )
     data = clean_industry_segment(data=data)
+    data = drop_rows_with_nan(data=data, columns=["industry_segment"])
+
+    # Clean up commercial_subtype
+    data = drop_rows_with_nan(data=data, columns=["commercial_subtype"])
+
+
+###########################################################
+#############ARPC_DATA SPECIFIC METHODS##################
+###########################################################
+
+
+def prep_arpc_data() -> pd.DataFrame:
+    data = pd.read_csv("data/arpc_values.csv")
+    # drop irrelevant columns
+    data = drop_columns(
+        data=data, columns=["account_name", "industry_segment", "commercial_subtype"]
+    )
+    
 
 
 if __name__ == "__main__":
