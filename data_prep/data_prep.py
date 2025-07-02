@@ -13,7 +13,6 @@ def setup_logging():
     """
     Setup logger.
     """
-    # Ensure logs folder exists
     os.makedirs("logs", exist_ok=True)
 
     # Create a logger specific for this file
@@ -25,8 +24,6 @@ def setup_logging():
     file_handler.setLevel(logging.INFO)
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(formatter)
-
-    # Add handler if not already added
     if not logger.hasHandlers():
         logger.addHandler(file_handler)
     return logger
@@ -164,7 +161,6 @@ def recreate_is_closed(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
     )  # anything 18 months prior or more would be closed
     data[col_name] = data["date_received"] >= result_date
     logger.info(f"Successfully created column: {col_name}")
-    logger.info(data)
     return data
 
 
@@ -194,7 +190,29 @@ def clean_industry_segment(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
+def date_error_proportion_column(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
+    """
+    Create column indicating portion of date entries that have issues where either date
+    is NaN, or date sequencing is invalid.
+    """
+    data[col_name] = (
+        data.assign(
+            _date_issue=(  # create temporary column
+                (data["start_date"] > data["date_received"])
+                | (data["loss_date"] > data["date_received"])
+                | (data["start_date"] > data["loss_date"])
+                | (data["loss_date"].isna())
+            )
+        )
+        .groupby("account_id")["_date_issue"]
+        .transform("mean")
+    )
+    logger.info(f"Successfully created column: {col_name}")
+    return data
+
+
 def prep_claims_data() -> pd.DataFrame:
+    logger.info("\n==================== CLAIMS DATA ====================")
     data = pd.read_csv("data/all_claims_data.csv")
     # drop irrelevant columns
     data = drop_columns(data=data, columns=["case_number", "is_deleted", "type"])
@@ -226,8 +244,6 @@ def prep_claims_data() -> pd.DataFrame:
     )
 
     data = recreate_is_closed(data=data, col_name="is_closed")
-    # drop date columns now that we no longer need them
-    data = drop_columns(data=data, columns=["date_received", "loss_date", "start_date"])
 
     # Convert Unassigned industry_segment entries to NaN, clean, and drop remaining NaNs
     data = convert_entries_to_nan(
@@ -239,6 +255,14 @@ def prep_claims_data() -> pd.DataFrame:
     # Clean up commercial_subtype
     data = drop_rows_with_nan(data=data, columns=["commercial_subtype"])
 
+    # Create column indicating portion of date entries that have issues
+    data = date_error_proportion_column(data=data, col_name="date_issue_proportion")
+
+    # Create column indicating average diff (in days) between loss_date and date_received
+
+    # drop date columns now that we no longer need them
+    data = drop_columns(data=data, columns=["date_received", "loss_date", "start_date"])
+
 
 ###########################################################
 #############ARPC_DATA SPECIFIC METHODS##################
@@ -246,17 +270,19 @@ def prep_claims_data() -> pd.DataFrame:
 
 
 def prep_arpc_data() -> pd.DataFrame:
+    logger.info("\n==================== ARPC DATA ====================")
     data = pd.read_csv("data/arpc_values.csv")
     # drop irrelevant columns
     data = drop_columns(
         data=data, columns=["account_name", "industry_segment", "commercial_subtype"]
     )
-    
+    logger.info(data)
 
 
 if __name__ == "__main__":
     try:
         prep_claims_data()
+        prep_arpc_data()
 
     except Exception as error:
         logger.error(error)

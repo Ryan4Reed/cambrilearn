@@ -48,4 +48,7 @@ Special note wrt the effect of payout amount on distribution
 ## arpc_data notes
 
 - We assume that the mean and median are only determined wrt claims where a payout actually occured.
-- We will weight by ....
+
+## account_revenue_distribution notes
+- The `claim_count` column in `account_revenue_distribution` is not consistent with the `claims_data` set. For example for `account_id = 0010G00002CbubXQAR` we see a claim_co`u`nt entry of `543`, however, there are 1968 claim entries in `claims_data` wrt this account.
+    - This again raises question about how up to date/trustworth the `account_revenue_distribution` dataset is, however we make due for now and simply will not make use of the claim_count column in `account_revenue_distribution` but rather recalculate it from the `claims_data` set.
