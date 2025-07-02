@@ -24,7 +24,8 @@ Imputing or dropping rows with missing/incorrect values
 
 Initial set of engineered features
 - `commercial_subtype_proportion`: `account_id` has a one to many relationship with `commercial_subtype` (doesn't exist on an account level). This means that we cant use it for training. We need to convert it to an account level feature: A feature that indicates the proportion of account entries represented by each `commercial_subtype`.
-- The existing derived columns [`months_since_joined`, `last_year_claim_count`, `months_since_last_claim`, `two_months_dry`,  `six_months_dry`, `one_year_dry`, `two_years_dry`] look consistent with the raw data, however they need to be recomputed as they could include data that sits outside the period of interest (entries with a `date_received` after to `2024-06-30`)
+- The existing derived columns [`months_since_joined`, `last_year_claim_count`, `months_since_last_claim`, `two_months_dry`,  `six_months_dry`, `one_year_dry`, `two_years_dry`] is not consistent with the raw data (seems to be 5 months behind). They need to be recomputed.
+<!-- as they could include data that sits outside the period of interest (entries with a `date_received` after to `2024-06-30`) -->
     - we will also add a `four_years_dry` column
 - We mentioned above that there often issues wrt the date columns in our data. We will handle these as follows in order to indicate such issues on an account level:
     - Incorrect date values (`3120-04-03`) and missing date values (`Nan`) will be treated in the same way. Motivation is for the same of simplicity and because it is likely that the effect of such errors on the payout distribution is very similar.
@@ -34,9 +35,7 @@ Initial set of engineered features
 
 Special note wrt the effect of payout amount on distribution
 - It is highly likely that the amount to be paid out has an effect on the payout distribution. Larger amounts take longer to process. But unfortunately we have not been given payout amount information (`mean_account_arpc`, `median_account_arpc`) for all the account we need to predict. As such we need to create a seperate prediction model to determine those amounts. Should we use the output of that model as input to this model?
-    - In general you need to be careful when creating stacked models as it leaves room for compounding erros. It is also true that:
-    - If any predictive power lives in the predicted amounts for this model, that comes directly from the features we used to predict the amounts. Meaning instead of adding the inbetween step of the amount prediction and using that in our distribution model, we could theoretically use the raw features directly in our distribution model. Removing room for compounding model training error. In practice however,:
-    - Is that it becomes increasingly difficult for models to learn such hidden relationships. Given the likely predictive power of `mean_account_arpc` we're going to go ahead and compute it and use it directly as input to the distribution model along with some of the raw features we used to predict the amount. 
+    - In general you need to be careful when creating stacked models as it leaves room for compounding erros. We'll keep this in mind as we go.
     - 
 
 **For starters we will include/engineer the following features in our training dataset and make use of pearson correlation :**
