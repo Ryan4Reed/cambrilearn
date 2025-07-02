@@ -23,7 +23,7 @@ Imputing or dropping rows with missing/incorrect values
 
 
 Initial set of engineered features
-- `commercial_subtype_proportion`: `account_id` has a one to many relationship with `commercial_subtype` (doesn't exist on an account level). This means that we cant use it for training. We need to convert it to an account level feature: A feature that indicates the proportion of account entries represented by each `commercial_subtype`.
+- `commercial_subtype_proportion`: `account_id` has a one to many relationship with `commercial_subtype` (doesn't exist on an account level). This means that we cant use it directly for training. We need to convert it to an account level feature: A feature that indicates the proportion of account entries represented by each `commercial_subtype`.
 - The existing derived columns [`months_since_joined`, `last_year_claim_count`, `months_since_last_claim`, `two_months_dry`,  `six_months_dry`, `one_year_dry`, `two_years_dry`] is not consistent with the raw data (seems to be 5 months behind). They need to be recomputed.
 <!-- as they could include data that sits outside the period of interest (entries with a `date_received` after to `2024-06-30`) -->
     - we will also add a `four_years_dry` column
