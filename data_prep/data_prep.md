@@ -18,10 +18,13 @@ Filtering out noise
 - `case_numbers` adds no value and will be dropped. 
 
 Imputing or dropping rows with missing/incorrect values
-- `industry_segment` is `NaN` for a select number of entries. However, in the data you can see that every `account_id`, maps to a single `industry_segment`. As such, where possible we will impute `industry_segment` from other entries for a particular `account_id`
-    - None of the accounts that impact the revenue to be received has `industry_segment` entries of Unassigned/NaN. If we will not see such entries in our predictions, the algorith need not map such instances (we need not include it in our training set). As such, if there are any that remain after the above, they will be dropped.
+- `industry_segment` is `NaN` for a select number of entries. 
+    - In the data you can see that some `account_id`, maps to multiple `industry_segment`s. As such, we cannot impute `industry_segment` from other entries for a particular `account_id`
+    - We will thus encode the `industry_segment` column by created columns for each category containing the proportion of an accounts entries represented by the category.
+    
 - `commercial_subtype` has a many to one relationship with `industry_segment` so its worth initially adding as a feature. It also has a one to one mapping with account_id (so it exists on an account level). This means that we can use it directly for training (one hot encoded). 
-    - There are six accounts for which `commercial_subtype` is NaN after our other cleaning steps. As none of these account effect the revenue to be collected, or represent unique behaviour to be learned, and as we have sufficient data remaining, they will be dropped (accounts in question also not present in `arpc_values`).
+    - In theory it would be possible to impute `commercial_subtype` when missing if another entry against the same `account_id` has it filled out. Unfortunaly, for accounts where it is missing it is missing for all entries.
+    - There are six accounts for which `commercial_subtype` is NaN after our cleaning steps. As none of these account effect the revenue to be collected, or represent unique behaviour to be learned, and as we have sufficient data remaining, they will be dropped (accounts in question also not present in `arpc_values`).
 - Quite a few rows in our dataset have issues wrt date entries. These include:
     - Some entries are invalid or missing (eg. `loss_date` = `3120-04-03` or `Nan`)
     - There are also entries where the date logged for `loss_date` is post the date logged for `date_received` (which is infeasible)

@@ -55,6 +55,18 @@ def convert_entries_to_nan(
     )
     return data
 
+def convert_nan_entries_to_unassigned(
+    data: pd.DataFrame, column: str
+) -> pd.DataFrame:
+    """
+    Converts NaN entries for a particular column to Unassigned.
+    """
+    affected_count = data[column].isna().sum()
+    data[column] = data[column].fillna('Unassigned')
+    logger.info(
+        f"Converted {affected_count} NaN entries to Unassigned from column: {column}"
+    )
+    return data
 
 def convert_to_datetime(data: pd.DataFrame, date_columns: list[str]) -> pd.DataFrame:
     """
@@ -76,6 +88,7 @@ def drop_rows_outside_period(data: pd.DataFrame) -> pd.DataFrame:
     )
     return data
 
+
 def drop_rows_with_nan(data: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     """
     Drop rows based on NaN entries wrt a particular set of columns.
@@ -90,18 +103,21 @@ def drop_rows_with_nan(data: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
 #############CLAIMS_DATA SPECIFIC METHODS##################
 ###########################################################
 
+
 def get_pre_sync_data(data: pd.DataFrame) -> pd.DataFrame:
     """
     split according to sync_date.
     """
-    pre_data = data[data['date_received'] < sync_date]
+    pre_data = data[data["date_received"] < sync_date]
     logger.info(f"Successfully split data")
     logger.info(f"Length of complete dataset: {len(data)}")
     logger.info(f"Length of presync dataset: {len(pre_data)}")
     return pre_data
 
 
-def recreate_months_since_joined(data: pd.DataFrame, col_name: str, date: pd.DatetimeIndex) -> pd.DataFrame:
+def recreate_months_since_joined(
+    data: pd.DataFrame, col_name: str, date: pd.DatetimeIndex
+) -> pd.DataFrame:
     """
     Recreate the months_since_joined column based on up to date data.
     """
@@ -113,7 +129,9 @@ def recreate_months_since_joined(data: pd.DataFrame, col_name: str, date: pd.Dat
     return data
 
 
-def recreate_last_year_claim_count(data: pd.DataFrame, col_name: str, date: pd.DatetimeIndex) -> pd.DataFrame:
+def recreate_last_year_claim_count(
+    data: pd.DataFrame, col_name: str, date: pd.DatetimeIndex
+) -> pd.DataFrame:
     """
     Recreate last_year_claim_count column based on up to date data.
     """
@@ -127,7 +145,9 @@ def recreate_last_year_claim_count(data: pd.DataFrame, col_name: str, date: pd.D
     return data
 
 
-def recreate_months_since_last_claim(data: pd.DataFrame, col_name: str, date: pd.DatetimeIndex) -> pd.DataFrame:
+def recreate_months_since_last_claim(
+    data: pd.DataFrame, col_name: str, date: pd.DatetimeIndex
+) -> pd.DataFrame:
     """
     Recreate months_since_last_claim column based on up to date data.
     """
@@ -175,31 +195,24 @@ def recreate_is_closed(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
     return data
 
 
-def clean_industry_segment(data: pd.DataFrame) -> pd.DataFrame:
+def encode_industry_segment_proportions(data: pd.DataFrame) -> pd.DataFrame:
     """
-    Update NaN industry_segment entries if account_id has valid value in another row.
-    One to one relationship between industry and account
+    Encode the industry_segment column by created columns for each category 
+    containing the proportion of an accounts entries represented by the category.
     """
-    missing_before = data["industry_segment"].isna().sum()
-    # Get mapping of account_id to first valid industry
-    industry_mapping = (
-        data.dropna(subset=["industry_segment"])
-        .groupby("account_id")["industry_segment"]
-        .first()
+    # Compute proportions
+    proportions = (
+        pd.crosstab(data['account_id'], data['industry_segment'])
+          .div(data.groupby('account_id').size(), axis=0)
+          .add_prefix('industry_segment_')
+          .reset_index()
     )
-    # Fill missing or unassigned values by mapping account_id
-    data["industry_segment"] = data["industry_segment"].fillna(
-        data["account_id"].map(industry_mapping)
-    )
-    missing_after = data["industry_segment"].isna().sum()
-    logger.info(
-        f"Was able to correct a total of {missing_before - missing_after} entries wrt industry_segment"
-    )
-    logger.info(
-        f"There is still a total of {data['industry_segment'].isna().sum()} NaN entries in industry_segment"
-    )
-    return data
 
+    data = data.merge(proportions, on='account_id', how='left')
+    logger.info('Successfully adding industry_segment proportion columns')
+    pd.set_option('display.max_columns', None)
+    logger.info(data)
+    return data
 
 def date_error_proportion_column(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
     """
@@ -237,35 +250,55 @@ def days_between_loss_and_claim(data: pd.DataFrame, col_name: str) -> pd.DataFra
     return data
 
 
-def engineer_claims_features(data: pd.DataFrame, date: pd.DatetimeIndex) -> pd.DataFrame:
+def engineer_claims_features(
+    data: pd.DataFrame, date: pd.DatetimeIndex
+) -> pd.DataFrame:
     """
     All methods for adding engineer features for claims data
     """
-    data = recreate_months_since_joined(data=data, col_name="months_since_joined", date=date)
+    data = recreate_months_since_joined(
+        data=data, col_name="months_since_joined", date=date
+    )
 
-    data = recreate_last_year_claim_count(data=data, col_name="last_year_claim_count", date=date)
+    data = recreate_last_year_claim_count(
+        data=data, col_name="last_year_claim_count", date=date
+    )
     data = recreate_months_since_last_claim(
         data=data, col_name="months_since_last_claim", date=date
     )
     data = recreate_dry_months(
         data=data,
-        col_names=["two_months_dry", "six_months_dry", "one_year_dry", "two_years_dry"]
+        col_names=["two_months_dry", "six_months_dry", "one_year_dry", "two_years_dry"],
     )
 
     # Create column indicating portion of date entries that have issues
     data = date_error_proportion_column(data=data, col_name="date_issue_proportion")
-
+    
     # average diff (in days) between loss_date and date_received
     data = days_between_loss_and_claim(
         data=data, col_name="days_between_loss_and_claim"
     )
 
     # drop date columns now that we no longer need them
-    data = drop_columns(data=data, columns=["date_received", "loss_date", "start_date"])
+    data = drop_columns(data=data, columns=["date_received", "loss_date", "start_date", "date_issue"])
 
     logger.info(f"Successfully engineered claims features")
     return data
 
+
+def collapse_data_per_account(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Collapse data so that we have one row per account
+    """
+    data = data.drop_duplicates()
+
+    dupes = data["account_id"].value_counts()
+    dupes = dupes[dupes > 1].index.tolist()
+
+    if len(dupes) > 1:
+        raise error("Failed to collapse data to account level dateset")
+    logger.info('Successfully collapsed data to account level dataset')
+    return data
 
 
 def prep_claims_data() -> pd.DataFrame:
@@ -276,14 +309,12 @@ def prep_claims_data() -> pd.DataFrame:
     ##########################
     # drop irrelevant columns
     data = drop_columns(data=data, columns=["case_number", "is_deleted", "type"])
-    
+
     # Convert unknown account_id entries to NaN and drop all NaN
     data = convert_entries_to_nan(
         data=data, column="account_id", entries=["Unknown Account"]
     )
-    data = drop_rows_with_nan(
-        data=data, columns=["account_id"]
-    )  
+    data = drop_rows_with_nan(data=data, columns=["account_id"])
 
     # convert illogical loss_date entries to NaN
     data = convert_entries_to_nan(
@@ -299,11 +330,11 @@ def prep_claims_data() -> pd.DataFrame:
     data = drop_rows_outside_period(data=data)
 
     # Convert Unassigned industry_segment entries to NaN, clean, and drop remaining NaNs
-    data = convert_entries_to_nan(
-        data=data, column="industry_segment", entries=["Unassigned"]
+    data = convert_nan_entries_to_unassigned(
+        data=data, column="industry_segment"
     )
-    data = clean_industry_segment(data=data)
-    data = drop_rows_with_nan(data=data, columns=["industry_segment"])
+    data = encode_industry_segment_proportions(data=data)
+    data = drop_columns(data=data, columns=["industry_segment"])
 
     # Clean up commercial_subtype
     data = drop_rows_with_nan(data=data, columns=["commercial_subtype"])
@@ -323,11 +354,15 @@ def prep_claims_data() -> pd.DataFrame:
     pre_sync_data = engineer_claims_features(pre_sync_data, sync_date)
 
     # collapse datasets to one row per account_id
+    account_level_data = collapse_data_per_account(data.drop(columns=['is_closed']))
+    account_level_pre_sync_data = collapse_data_per_account(pre_sync_data.drop(columns=['is_closed']))
+
+
 
     # ---------ONE HOT ENCODE
 
     logger.info("Successfully prepped claims_data")
-    return data, pre_sync_data
+    return data, account_level_data, account_level_pre_sync_data
 
 
 ###########################################################
@@ -386,7 +421,7 @@ def prep_industry_revenue_dist_data() -> pd.DataFrame:
 
 if __name__ == "__main__":
     try:
-        claims_data, pre_sync_claims_data = prep_claims_data()
+        claims_data, account_level_claims_data, account_level_pre_sync_claims_data = prep_claims_data()
         arpc_data = prep_arpc_data()
         account_revenue_dist_data = prep_account_revenue_dist_data()
 
