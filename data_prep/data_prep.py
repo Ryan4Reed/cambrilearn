@@ -3,6 +3,7 @@ import logging
 import os
 
 reference_date = pd.Timestamp("2024-07-01")
+sync_date = pd.Timestamp("2024-02-01")
 
 ###########################################################
 #######################GENERAL METHODS#####################
@@ -75,7 +76,6 @@ def drop_rows_outside_period(data: pd.DataFrame) -> pd.DataFrame:
     )
     return data
 
-
 def drop_rows_with_nan(data: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     """
     Drop rows based on NaN entries wrt a particular set of columns.
@@ -90,41 +90,52 @@ def drop_rows_with_nan(data: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
 #############CLAIMS_DATA SPECIFIC METHODS##################
 ###########################################################
 
+def get_pre_sync_data(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    split according to sync_date.
+    """
+    pre_data = data[data['date_received'] < sync_date]
+    logger.info(f"Successfully split data")
+    logger.info(f"Length of complete dataset: {len(data)}")
+    logger.info(f"Length of presync dataset: {len(pre_data)}")
+    return pre_data
 
-def recreate_months_since_joined(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
+
+def recreate_months_since_joined(data: pd.DataFrame, col_name: str, date: pd.DatetimeIndex) -> pd.DataFrame:
     """
     Recreate the months_since_joined column based on up to date data.
     """
     data = drop_columns(data=data, columns=[col_name])
-    data[col_name] = (2024 - data["start_date"].dt.year) * 12 + (
-        12 - data["start_date"].dt.month
+    data[col_name] = (date.year - data["start_date"].dt.year) * 12 + (
+        date.month - data["start_date"].dt.month
     )
     logger.info(f"Successfully created column: {col_name}")
     return data
 
 
-def recreate_last_year_claim_count(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
+def recreate_last_year_claim_count(data: pd.DataFrame, col_name: str, date: pd.DatetimeIndex) -> pd.DataFrame:
     """
     Recreate last_year_claim_count column based on up to date data.
     """
     data = drop_columns(data=data, columns=[col_name])
-    cutoff_date = "2023-06-01"
+    cutoff_date = date - pd.DateOffset(months=12)
     counts = data[data["date_received"] >= cutoff_date].groupby("account_id").size()
     # map counts back to df
     data["last_year_claim_count"] = data["account_id"].map(counts).fillna(0).astype(int)
     logger.info(f"Successfully created column: {col_name}")
+
     return data
 
 
-def recreate_months_since_last_claim(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
+def recreate_months_since_last_claim(data: pd.DataFrame, col_name: str, date: pd.DatetimeIndex) -> pd.DataFrame:
     """
     Recreate months_since_last_claim column based on up to date data.
     """
     data = drop_columns(data=data, columns=[col_name])
     latest_claim_date = data.groupby("account_id")["date_received"].max()
 
-    months_diff = (reference_date.year - latest_claim_date.dt.year) * 12 + (
-        reference_date.month - latest_claim_date.dt.month
+    months_diff = (date.year - latest_claim_date.dt.year) * 12 + (
+        date.month - latest_claim_date.dt.month
     )
     data["months_since_last_claim"] = data["account_id"].map(months_diff).astype(int)
     logger.info(f"Successfully created column: {col_name}")
@@ -195,55 +206,97 @@ def date_error_proportion_column(data: pd.DataFrame, col_name: str) -> pd.DataFr
     Create column indicating portion of date entries that have issues where either date
     is NaN, or date sequencing is invalid.
     """
-    data[col_name] = (
-        data.assign(
-            _date_issue=(  # create temporary column
-                (data["start_date"] > data["date_received"])
-                | (data["loss_date"] > data["date_received"])
-                | (data["start_date"] > data["loss_date"])
-                | (data["loss_date"].isna())
-            )
-        )
-        .groupby("account_id")["_date_issue"]
-        .transform("mean")
+    # Add the flag column to data
+    data["date_issue"] = (
+        (data["start_date"] > data["date_received"])
+        | (data["loss_date"] > data["date_received"])
+        | (data["start_date"] > data["loss_date"])
+        | (data["loss_date"].isna())
     )
+
+    # Compute and assign proportion per account
+    data[col_name] = data.groupby("account_id")["date_issue"].transform("mean")
     logger.info(f"Successfully created column: {col_name}")
     return data
+
+
+def days_between_loss_and_claim(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
+    """
+    Calculate the average difference between loss_date and date_received for each account.
+    We will exclude entries where loss_date > date_received.
+    """
+    avg_diff_per_account = (
+        data.loc[~data["date_issue"]]  # exclude entries with date issue
+        .assign(days_diff=(lambda df: (df["date_received"] - df["loss_date"]).dt.days))
+        .groupby("account_id")["days_diff"]
+        .mean()
+    )
+
+    data[col_name] = data["account_id"].map(avg_diff_per_account)
+    logger.info(f"Successfully created column: {col_name}")
+    return data
+
+
+def engineer_claims_features(data: pd.DataFrame, date: pd.DatetimeIndex) -> pd.DataFrame:
+    """
+    All methods for adding engineer features for claims data
+    """
+    data = recreate_months_since_joined(data=data, col_name="months_since_joined", date=date)
+
+    data = recreate_last_year_claim_count(data=data, col_name="last_year_claim_count", date=date)
+    data = recreate_months_since_last_claim(
+        data=data, col_name="months_since_last_claim", date=date
+    )
+    data = recreate_dry_months(
+        data=data,
+        col_names=["two_months_dry", "six_months_dry", "one_year_dry", "two_years_dry"]
+    )
+
+    # Create column indicating portion of date entries that have issues
+    data = date_error_proportion_column(data=data, col_name="date_issue_proportion")
+
+    # average diff (in days) between loss_date and date_received
+    data = days_between_loss_and_claim(
+        data=data, col_name="days_between_loss_and_claim"
+    )
+
+    # drop date columns now that we no longer need them
+    data = drop_columns(data=data, columns=["date_received", "loss_date", "start_date"])
+
+    logger.info(f"Successfully engineered claims features")
+    return data
+
 
 
 def prep_claims_data() -> pd.DataFrame:
     logger.info("\n==================== CLAIMS DATA ====================")
     data = pd.read_csv("data/all_claims_data.csv")
+    ##########################
+    ########Clean Data########
+    ##########################
     # drop irrelevant columns
     data = drop_columns(data=data, columns=["case_number", "is_deleted", "type"])
-
-    # Convert unknown account_id entries to NaN
+    
+    # Convert unknown account_id entries to NaN and drop all NaN
     data = convert_entries_to_nan(
         data=data, column="account_id", entries=["Unknown Account"]
     )
     data = drop_rows_with_nan(
         data=data, columns=["account_id"]
-    )  # No such entries effect expected profit
+    )  
 
     # convert illogical loss_date entries to NaN
     data = convert_entries_to_nan(
         data=data, column="loss_date", entries=["3120-04-03", "3130-04-03"]
     )
+
+    # convert date columns to datetime
     data = convert_to_datetime(
         data=data, date_columns=["date_received", "loss_date", "start_date"]
     )
-    data = drop_rows_outside_period(data=data)
-    data = recreate_months_since_joined(data=data, col_name="months_since_joined")
-    data = recreate_last_year_claim_count(data=data, col_name="last_year_claim_count")
-    data = recreate_months_since_last_claim(
-        data=data, col_name="months_since_last_claim"
-    )
-    data = recreate_dry_months(
-        data=data,
-        col_names=["two_months_dry", "six_months_dry", "one_year_dry", "two_years_dry"],
-    )
 
-    data = recreate_is_closed(data=data, col_name="is_closed")
+    # drop rows with date_received outside period of interest
+    data = drop_rows_outside_period(data=data)
 
     # Convert Unassigned industry_segment entries to NaN, clean, and drop remaining NaNs
     data = convert_entries_to_nan(
@@ -255,17 +308,30 @@ def prep_claims_data() -> pd.DataFrame:
     # Clean up commercial_subtype
     data = drop_rows_with_nan(data=data, columns=["commercial_subtype"])
 
-    # Create column indicating portion of date entries that have issues
-    data = date_error_proportion_column(data=data, col_name="date_issue_proportion")
+    ##########################
+    ####Engineer Features#####
+    ##########################
+    # This can happen prior to split
+    data = recreate_is_closed(data=data, col_name="is_closed")
 
-    # Create column indicating average diff (in days) between loss_date and date_received
+    # get entries with date_received prior to sync date
+    pre_sync_data = get_pre_sync_data(data=data)
 
-    # drop date columns now that we no longer need them
-    data = drop_columns(data=data, columns=["date_received", "loss_date", "start_date"])
+    # We need to calculate feature wrt to both dataset
+    # features from pre_sync_data will be use during traing and from complete data during testing
+    data = engineer_claims_features(data, reference_date)
+    pre_sync_data = engineer_claims_features(pre_sync_data, sync_date)
+
+    # collapse datasets to one row per account_id
+
+    # ---------ONE HOT ENCODE
+
+    logger.info("Successfully prepped claims_data")
+    return data, pre_sync_data
 
 
 ###########################################################
-#############ARPC_DATA SPECIFIC METHODS##################
+#############ARPC_DATA SPECIFIC METHODS####################
 ###########################################################
 
 
@@ -276,13 +342,53 @@ def prep_arpc_data() -> pd.DataFrame:
     data = drop_columns(
         data=data, columns=["account_name", "industry_segment", "commercial_subtype"]
     )
-    logger.info(data)
+    logger.info("Successfully prepped arpc_data")
+    return data
+
+
+###########################################################
+############ACCOUNT_REV_DIST SPECIFIC METHODS##############
+###########################################################
+
+
+def prep_account_revenue_dist_data() -> pd.DataFrame:
+    logger.info("\n==================== ACCOUNT_REVENUE_DIST DATA ====================")
+    data = pd.read_csv("data/account_revenue_distributions.csv")
+    # drop irrelevant columns
+    data = drop_columns(data=data, columns=["account_name", "claim_count"])
+    logger.info("Successfully prepped account_revenue_dist_data")
+    return data
+
+
+#  monthly proportions >1 <0 ##################
+
+###########################################################
+############INDUSTRY_REV_DIST SPECIFIC METHODS##############
+###########################################################
+
+
+# account_revenue_dist[(account_revenue_dist['revenue_proportion']< 0) | (account_revenue_dist['revenue_proportion']>1)]['account_id'].unique()
+
+
+# ? monthly proportions >1 <0 ##################
+
+
+def prep_industry_revenue_dist_data() -> pd.DataFrame:
+    logger.info(
+        "\n==================== INDUSTRY_REVENUE_DIST DATA ===================="
+    )
+    data = pd.read_csv("data/industry_revenue_distributions.csv")
+    # drop irrelevant columns
+    data = drop_columns(data=data, columns=["claim_count"])
+    logger.info("Successfully prepped industry_revenue_dist_data")
+    return data
 
 
 if __name__ == "__main__":
     try:
-        prep_claims_data()
-        prep_arpc_data()
+        claims_data, pre_sync_claims_data = prep_claims_data()
+        arpc_data = prep_arpc_data()
+        account_revenue_dist_data = prep_account_revenue_dist_data()
 
     except Exception as error:
         logger.error(error)
