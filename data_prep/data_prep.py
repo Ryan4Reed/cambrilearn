@@ -55,18 +55,18 @@ def convert_entries_to_nan(
     )
     return data
 
-def convert_nan_entries_to_unassigned(
-    data: pd.DataFrame, column: str
-) -> pd.DataFrame:
+
+def convert_nan_entries_to_unassigned(data: pd.DataFrame, column: str) -> pd.DataFrame:
     """
     Converts NaN entries for a particular column to Unassigned.
     """
     affected_count = data[column].isna().sum()
-    data[column] = data[column].fillna('Unassigned')
+    data[column] = data[column].fillna("Unassigned")
     logger.info(
         f"Converted {affected_count} NaN entries to Unassigned from column: {column}"
     )
     return data
+
 
 def convert_to_datetime(data: pd.DataFrame, date_columns: list[str]) -> pd.DataFrame:
     """
@@ -197,22 +197,25 @@ def recreate_is_closed(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
 
 def encode_industry_segment_proportions(data: pd.DataFrame) -> pd.DataFrame:
     """
-    Encode the industry_segment column by created columns for each category 
+    Encode the industry_segment column by created columns for each category
     containing the proportion of an accounts entries represented by the category.
     """
+    # make entries lowercase
+    data["industry_segment"] = data["industry_segment"].str.lower()
+
     # Compute proportions
     proportions = (
-        pd.crosstab(data['account_id'], data['industry_segment'])
-          .div(data.groupby('account_id').size(), axis=0)
-          .add_prefix('industry_segment_')
-          .reset_index()
+        pd.crosstab(data["account_id"], data["industry_segment"])
+        .div(data.groupby("account_id").size(), axis=0)
+        .add_prefix("industry_segment_")
+        .reset_index()
     )
 
-    data = data.merge(proportions, on='account_id', how='left')
-    logger.info('Successfully adding industry_segment proportion columns')
-    pd.set_option('display.max_columns', None)
-    logger.info(data)
+    data = data.merge(proportions, on="account_id", how="left")
+    logger.info("Successfully adding industry_segment proportion columns")
+    pd.set_option("display.max_columns", None)
     return data
+
 
 def date_error_proportion_column(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
     """
@@ -245,8 +248,8 @@ def days_between_loss_and_claim(data: pd.DataFrame, col_name: str) -> pd.DataFra
         .mean()
     )
 
-    data[col_name] = data["account_id"].map(avg_diff_per_account)
-    logger.info(f"Successfully created column: {col_name}")
+    data[col_name] = data["account_id"].map(avg_diff_per_account).fillna(-1)
+    logger.info(f"Successfully created column: {col_name} (NaNs filled with -1)")
     return data
 
 
@@ -273,31 +276,55 @@ def engineer_claims_features(
 
     # Create column indicating portion of date entries that have issues
     data = date_error_proportion_column(data=data, col_name="date_issue_proportion")
-    
+
+    # Create one hot encoded type columns with industry segment proportions
+    data = encode_industry_segment_proportions(data=data)
+    data = drop_columns(data=data, columns=["industry_segment"])
+
     # average diff (in days) between loss_date and date_received
     data = days_between_loss_and_claim(
         data=data, col_name="days_between_loss_and_claim"
     )
 
     # drop date columns now that we no longer need them
-    data = drop_columns(data=data, columns=["date_received", "loss_date", "start_date", "date_issue"])
+    data = drop_columns(
+        data=data, columns=["date_received", "loss_date", "start_date", "date_issue"]
+    )
 
     logger.info(f"Successfully engineered claims features")
     return data
 
 
-def collapse_data_per_account(data: pd.DataFrame) -> pd.DataFrame:
+def collapse_data(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
     """
     Collapse data so that we have one row per account
     """
     data = data.drop_duplicates()
 
-    dupes = data["account_id"].value_counts()
+    dupes = data[col_name].value_counts()
     dupes = dupes[dupes > 1].index.tolist()
 
     if len(dupes) > 1:
-        raise error("Failed to collapse data to account level dateset")
-    logger.info('Successfully collapsed data to account level dataset')
+        raise ValueError("Failed to collapse data to account level dateset")
+    logger.info(f"Successfully collapsed data to {col_name} level dataset")
+    return data
+
+
+def one_hot_encode_columns(data: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """
+    One-hot encodes the specified columns in the DataFrame.
+    Resulting columns are prefixed with the original column name and originals dropped.
+    """
+    # Make categories lowercase for consistend column naming
+    for col in columns:
+        data[col] = data[col].str.lower()
+
+    dummies = pd.get_dummies(data[columns], prefix=columns)
+    dummies = dummies.astype(int)
+
+    # Drop original columns and join dummies
+    data = data.drop(columns=columns).join(dummies)
+    logger.info(f"Successfully one-hot encoded columns: {columns}")
     return data
 
 
@@ -308,7 +335,9 @@ def prep_claims_data() -> pd.DataFrame:
     ########Clean Data########
     ##########################
     # drop irrelevant columns
-    data = drop_columns(data=data, columns=["case_number", "is_deleted", "type"])
+    data = drop_columns(
+        data=data, columns=["case_number", "is_deleted", "type", "account_name"]
+    )
 
     # Convert unknown account_id entries to NaN and drop all NaN
     data = convert_entries_to_nan(
@@ -329,12 +358,8 @@ def prep_claims_data() -> pd.DataFrame:
     # drop rows with date_received outside period of interest
     data = drop_rows_outside_period(data=data)
 
-    # Convert Unassigned industry_segment entries to NaN, clean, and drop remaining NaNs
-    data = convert_nan_entries_to_unassigned(
-        data=data, column="industry_segment"
-    )
-    data = encode_industry_segment_proportions(data=data)
-    data = drop_columns(data=data, columns=["industry_segment"])
+    # Convert NaN industry_segment entries to Unassigned
+    data = convert_nan_entries_to_unassigned(data=data, column="industry_segment")
 
     # Clean up commercial_subtype
     data = drop_rows_with_nan(data=data, columns=["commercial_subtype"])
@@ -354,15 +379,23 @@ def prep_claims_data() -> pd.DataFrame:
     pre_sync_data = engineer_claims_features(pre_sync_data, sync_date)
 
     # collapse datasets to one row per account_id
-    account_level_data = collapse_data_per_account(data.drop(columns=['is_closed']))
-    account_level_pre_sync_data = collapse_data_per_account(pre_sync_data.drop(columns=['is_closed']))
+    acc_lev_data = collapse_data(
+        data.drop(columns=["is_closed"]), col_name="account_id"
+    )
+    acc_lev_pre_sync_data = collapse_data(
+        pre_sync_data.drop(columns=["is_closed"]), col_name="account_id"
+    )
 
-
-
-    # ---------ONE HOT ENCODE
+    # one_hot_encode commercial_subtype
+    acc_lev_data = one_hot_encode_columns(
+        data=acc_lev_data, columns=["commercial_subtype"]
+    )
+    acc_lev_pre_sync_data = one_hot_encode_columns(
+        data=acc_lev_pre_sync_data, columns=["commercial_subtype"]
+    )
 
     logger.info("Successfully prepped claims_data")
-    return data, account_level_data, account_level_pre_sync_data
+    return data, acc_lev_data, acc_lev_pre_sync_data
 
 
 ###########################################################
@@ -370,15 +403,43 @@ def prep_claims_data() -> pd.DataFrame:
 ###########################################################
 
 
+def seperate_arpc_data(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Seperate out account and industry level information into seperate datasets.
+    """
+    industry_arpc = data[
+        [
+            "industry_segment",
+            "mean_industry_arpc",
+            "median_industry_arpc",
+            "industry_hit_success_rate",
+        ]
+    ]
+    industry_arpc = collapse_data(industry_arpc, col_name='industry_segment')
+
+    account_arpc = data[
+        [
+            "account_id",
+            "mean_account_arpc",
+            "median_account_arpc",
+            "account_hit_success_rate",
+        ]
+    ]
+    account_arpc = collapse_data(account_arpc, col_name='account_id')
+
+    return industry_arpc, account_arpc
+
+
 def prep_arpc_data() -> pd.DataFrame:
     logger.info("\n==================== ARPC DATA ====================")
     data = pd.read_csv("data/arpc_values.csv")
     # drop irrelevant columns
-    data = drop_columns(
-        data=data, columns=["account_name", "industry_segment", "commercial_subtype"]
-    )
+    data = drop_columns(data=data, columns=["account_name", "commercial_subtype"])
+
+    # seperate out account and industry level information
+    industry_arpc, account_arpc = seperate_arpc_data(data=data)
     logger.info("Successfully prepped arpc_data")
-    return data
+    return industry_arpc, account_arpc
 
 
 ###########################################################
@@ -386,26 +447,43 @@ def prep_arpc_data() -> pd.DataFrame:
 ###########################################################
 
 
+def drop_invalid_proportions(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Drops all rows for account_ids that have any revenue_proportion outside [0, 1].
+    """
+    bad_accounts = data.loc[
+        (data["revenue_proportion"] > 1) | (data["revenue_proportion"] < 0),
+        "account_id",
+    ].unique()
+
+    count_before = len(data["account_id"].unique())
+    # Drop all rows for those accounts
+    data = data[~data["account_id"].isin(bad_accounts)].copy()
+
+    logger.info(
+        f"Dropped {count_before - len(data['account_id'].unique())} accounts with invalid proportions."
+    )
+    return data
+
+
 def prep_account_revenue_dist_data() -> pd.DataFrame:
     logger.info("\n==================== ACCOUNT_REVENUE_DIST DATA ====================")
     data = pd.read_csv("data/account_revenue_distributions.csv")
     # drop irrelevant columns
     data = drop_columns(data=data, columns=["account_name", "claim_count"])
+
+    # drop accounts where proportions per month are >1 < 0
+    data = drop_invalid_proportions(data=data)
+    # drop accounts where proportions are nan
+    data = drop_rows_with_nan(data=data, columns=["revenue_proportion"])
+
     logger.info("Successfully prepped account_revenue_dist_data")
     return data
 
 
-#  monthly proportions >1 <0 ##################
-
 ###########################################################
-############INDUSTRY_REV_DIST SPECIFIC METHODS##############
+############INDUSTRY_REV_DIST SPECIFIC METHODS#############
 ###########################################################
-
-
-# account_revenue_dist[(account_revenue_dist['revenue_proportion']< 0) | (account_revenue_dist['revenue_proportion']>1)]['account_id'].unique()
-
-
-# ? monthly proportions >1 <0 ##################
 
 
 def prep_industry_revenue_dist_data() -> pd.DataFrame:
@@ -419,11 +497,42 @@ def prep_industry_revenue_dist_data() -> pd.DataFrame:
     return data
 
 
+###########################################################
+############Combining All Datasets#############
+###########################################################
+
+
+def combine_data(
+    claims_data: pd.DataFrame,
+    arpc_data: pd.DataFrame,
+    account_data: pd.DataFrame,
+    industry_data: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Combine datasets into single dataset.
+    """
+    logger.info(arpc_data)
+    logger.info(claims_data)
+
+    # data = drop_columns(data=data, columns=["industry_segment"])
+
+
 if __name__ == "__main__":
     try:
-        claims_data, account_level_claims_data, account_level_pre_sync_claims_data = prep_claims_data()
-        arpc_data = prep_arpc_data()
-        account_revenue_dist_data = prep_account_revenue_dist_data()
+        claims_data, acc_lev_claims_data, acc_lev_pre_sync_claims_data = (
+            prep_claims_data()
+        )
+        industry_arpc, account_arpc = prep_arpc_data()
+        acc_rev_dist = prep_account_revenue_dist_data()
+        ind_rev_dist = prep_industry_revenue_dist_data()
+
+        combine_data(
+            claims_data=acc_lev_claims_data,
+            industry_arpc=industry_arpc,
+            account_arpc=account_arpc,
+            account_data=acc_rev_dist,
+            industry_data=ind_rev_dist,
+        )
 
     except Exception as error:
         logger.error(error)

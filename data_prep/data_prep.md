@@ -18,9 +18,14 @@ Filtering out noise
 - `case_numbers` adds no value and will be dropped. 
 
 Imputing or dropping rows with missing/incorrect values
-- `industry_segment` is `NaN` for a select number of entries. 
-    - In the data you can see that some `account_id`, maps to multiple `industry_segment`s. As such, we cannot impute `industry_segment` from other entries for a particular `account_id`
-    - We will thus encode the `industry_segment` column by created columns for each category containing the proportion of an accounts entries represented by the category.
+- `industry_segment` 
+    - `industry_segment` is `NaN` for a select number of entries. 
+    - In the data you can see that some `account_id`, maps to multiple `industry_segment`s. As such, we cannot impute `industry_segment` from other entries that have it filled out for a particular `account_id`.
+    - Further in order to make use of the information in industry_revenue_distribution, we need to be able to map an account to a particular industry. 
+    - Note that no accounts have industry_segment entries of NaN for are all its rows.
+    - As such we will adopt the following strategy:
+        - We will encode the `industry_segment` column by creating columns for each category containing the proportion of an accounts entries represented by the category (including an unnassigned/nan category).
+        - When we use the revenue_proportion data from industry_revenue_proportion we will weight the revenue_proportion for each month according to the proportion of an accounts entries represented by each industry.
     
 - `commercial_subtype` has a many to one relationship with `industry_segment` so its worth initially adding as a feature. It also has a one to one mapping with account_id (so it exists on an account level). This means that we can use it directly for training (one hot encoded). 
     - In theory it would be possible to impute `commercial_subtype` when missing if another entry against the same `account_id` has it filled out. Unfortunaly, for accounts where it is missing it is missing for all entries.
@@ -47,6 +52,7 @@ As best we can tell, the data in account_revenue_distribution is lagging behind 
 - The second type of issue we see wrt date issues is that there is at times a significant gap between the specified loss_date and the date_received. This likely contributes to the payout distribution per account. As sush:
     - We will engineer a feature indicating the average time (in days) between these two dates.
     - We will exclude entries that have any of the above issues in our calculations.
+    - If all entries for a paricular account have loss_date as NaN we will set the diff to -1 so that the algorithms can handle it (NaN not supported for all models).
 
 Special note wrt the effect of payout amount on distribution
 - It is highly likely that the amount to be paid out has an effect on the payout distribution. Larger amounts take longer to process. But unfortunately we have not been given payout amount information (`mean_account_arpc`, `median_account_arpc`) for all the account we need to predict. As such we need to create a seperate prediction model to determine those amounts. Should we use the output of that model as input to this model?
@@ -61,6 +67,12 @@ Special note wrt the effect of payout amount on distribution
 ## arpc_data notes
 
 - We assume that the mean and median are only determined wrt claims where a payout actually occured.
+- The `industry_segment` entry against each `account_id` in `claims_data` does not correspond with the `industry_segment` entry against each `account_id` in `arpc_values`. This is a problem for joining and using the industry level information in `arpc_data`. 
+    - We are going to assume that the relationship between the `industry_segment` column and other industry level columns (eg. [`mean_industry_arpc`, `industry_hit_success_rate`, ...]) is correct. And that the error lies between the account_number and the `industry_segment` assigned. For that we will use `claims_data` as the source of truth.
+    - This is another step away from a trustworthy outcome.
+    - We can also see that across different `commercial_subtype` entries wrt the `commercial` `industry_segment`, the industry level values stay consistent. So we need not account for `commercial_subtype` in the join.
+
+
 
 ## account_revenue_distribution notes
 - The `claim_count` column in `account_revenue_distribution` is not consistent with the `claims_data` set. For example for `account_id = 0010G00002CbubXQAR` we see a `claim_count` entry of `543`, however, there are 1968 claim entries in `claims_data` wrt this account.
@@ -70,10 +82,8 @@ Special note wrt the effect of payout amount on distribution
     - As some of these accounts include accounts for which revenue is still pending, we will maintain there distributions in the data, as for these accounts we will use the detailed distribution instead of rellying on a predicted one. 
 
 ## industry_revenue_distribution notes
-- Given the very questionable quality of the `claim_count` in `account_revenue_distribution` we won't be making use of the `claim_count` in `industry_revenue_distribution` either. Doing so will likely introduce false information into our training set. 
-
-
-
+- Given the very questionable quality of the `claim_count` in `account_revenue_distribution` we won't be making use of the `claim_count` in `industry_revenue_distribution` either. Doing so will likely introduce false information into our training set.
+- Unlike `account_revenue_distribution` this dataset does not have any invalid (not in `[0, 1]`) or `NaN` entries in the `revenue_proportion` column.
 
 
 
