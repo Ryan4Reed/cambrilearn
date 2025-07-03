@@ -330,7 +330,7 @@ def one_hot_encode_columns(data: pd.DataFrame, columns: list[str]) -> pd.DataFra
 
 def prep_claims_data() -> pd.DataFrame:
     logger.info("\n==================== CLAIMS DATA ====================")
-    data = pd.read_csv("data/all_claims_data.csv")
+    data = pd.read_csv("data/raw/all_claims_data.csv")
     ##########################
     ########Clean Data########
     ##########################
@@ -415,7 +415,7 @@ def seperate_arpc_data(data: pd.DataFrame) -> pd.DataFrame:
             "industry_hit_success_rate",
         ]
     ]
-    industry_arpc = collapse_data(industry_arpc, col_name='industry_segment')
+    industry_arpc = collapse_data(industry_arpc, col_name="industry_segment")
 
     account_arpc = data[
         [
@@ -425,14 +425,14 @@ def seperate_arpc_data(data: pd.DataFrame) -> pd.DataFrame:
             "account_hit_success_rate",
         ]
     ]
-    account_arpc = collapse_data(account_arpc, col_name='account_id')
+    account_arpc = collapse_data(account_arpc, col_name="account_id")
 
     return industry_arpc, account_arpc
 
 
 def prep_arpc_data() -> pd.DataFrame:
     logger.info("\n==================== ARPC DATA ====================")
-    data = pd.read_csv("data/arpc_values.csv")
+    data = pd.read_csv("data/raw/arpc_values.csv")
     # drop irrelevant columns
     data = drop_columns(data=data, columns=["account_name", "commercial_subtype"])
 
@@ -468,7 +468,7 @@ def drop_invalid_proportions(data: pd.DataFrame) -> pd.DataFrame:
 
 def prep_account_revenue_dist_data() -> pd.DataFrame:
     logger.info("\n==================== ACCOUNT_REVENUE_DIST DATA ====================")
-    data = pd.read_csv("data/account_revenue_distributions.csv")
+    data = pd.read_csv("data/raw/account_revenue_distributions.csv")
     # drop irrelevant columns
     data = drop_columns(data=data, columns=["account_name", "claim_count"])
 
@@ -490,7 +490,7 @@ def prep_industry_revenue_dist_data() -> pd.DataFrame:
     logger.info(
         "\n==================== INDUSTRY_REVENUE_DIST DATA ===================="
     )
-    data = pd.read_csv("data/industry_revenue_distributions.csv")
+    data = pd.read_csv("data/raw/industry_revenue_distributions.csv")
     # drop irrelevant columns
     data = drop_columns(data=data, columns=["claim_count"])
     logger.info("Successfully prepped industry_revenue_dist_data")
@@ -501,21 +501,130 @@ def prep_industry_revenue_dist_data() -> pd.DataFrame:
 ############Combining All Datasets#############
 ###########################################################
 
+col_name_mapping = {
+    "industry_segment_commercial": "Commercial",
+    "industry_segment_dealership": "Dealership",
+    # "industry_segment_insurance company": "Insurance Company",
+    "industry_segment_municipality": "Municipality",
+    "industry_segment_rental": "Rental",
+}
+
+
+def add_weighted_industry_arpc_metrics(
+    claims_data: pd.DataFrame, industry_arpc: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Adds weighted industry-level arpc metrics to claims_data based on industry proportions.
+    Excludes 'industry_segment_unassigned', and 'industry_segment_car insurance'.
+    """
+    # Make sure industry_arpc is indexed on industry_segment
+    industry_info = industry_arpc.set_index("industry_segment")
+
+    # Pull the proportion values matrix from claims_data
+    proportions = claims_data[list(col_name_mapping.keys())].values
+
+    # For each industry-level metric, compute weighted sum
+    for metric in [
+        "mean_industry_arpc",
+        "median_industry_arpc",
+        "industry_hit_success_rate",
+    ]:
+        industry_values = industry_info.loc[
+            list(col_name_mapping.values()), metric
+        ].values
+        weighted_sum = (proportions * industry_values).sum(axis=1)
+        claims_data[f"weighted_{metric}"] = weighted_sum
+
+    logger.info("Successfully added weighted industry metrics.")
+    return claims_data
+
+
+def add_account_arpc_metrics(
+    data: pd.DataFrame, account_arpc: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Adds account-level metrics to data based on account_id.
+    """
+    data = pd.merge(data, account_arpc, on="account_id", how="left")
+
+    return data
+
+
+def add_ind_rev_distributions(
+    data: pd.DataFrame, industry_dist: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Add 18 columns containing the industry revenue distribution for each month wrt each account_id
+    weighted by the proportion to which each industry represents each account.
+    """
+    # Pivot industry_dist
+    industry_month_matrix = (
+        industry_dist.pivot(
+            index="industry", columns="month", values="revenue_proportion"
+        ).reindex(
+            index=list(col_name_mapping.values())
+        )  # Ensures order matches our mapping
+    )
+
+    # Convert to numpy matrix for fast multiplication
+    industry_month_values = industry_month_matrix.values
+
+    # Extract account industry proportions
+    account_proportions = data[list(col_name_mapping.keys())].values
+
+    # Multiply each account proportions × industry_month_values
+    predicted_distribution = account_proportions @ industry_month_values
+
+    # Add these 18 columns to claims_data
+    for month in range(1, 19):
+        col_name = f"industry_rev_month_{month}"
+        data[col_name] = predicted_distribution[:, month - 1]
+
+    logger.info("Successfully added industry revenue distribution columns.")
+    return data
+
+def add_acc_rev_distributions(
+    data: pd.DataFrame, account_dist: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Add 18 columns containing the industry revenue distribution for each month wrt each account_id
+    """
+    # Pivot account_dist
+    account_pivot = (
+        account_dist
+        .pivot(index='account_id', columns='month', values='revenue_proportion')
+    )
+    account_pivot.columns = [
+        f"account_rev_month_{int(month)}" for month in account_pivot.columns
+    ]
+    # make account_id column again
+    account_pivot = account_pivot.reset_index()
+    data = data.merge(account_pivot, on='account_id', how='left')
+
+    logger.info("Successfully added account_revenue_distribution columns.")
+    logger.info(data)
+
+    return data
 
 def combine_data(
     claims_data: pd.DataFrame,
-    arpc_data: pd.DataFrame,
-    account_data: pd.DataFrame,
-    industry_data: pd.DataFrame,
+    industry_arpc: pd.DataFrame,
+    account_arpc: pd.DataFrame,
+    account_dist: pd.DataFrame,
+    industry_dist: pd.DataFrame,
 ) -> pd.DataFrame:
     """
     Combine datasets into single dataset.
     """
-    logger.info(arpc_data)
-    logger.info(claims_data)
 
-    # data = drop_columns(data=data, columns=["industry_segment"])
+    data = add_weighted_industry_arpc_metrics(
+        claims_data=claims_data, industry_arpc=industry_arpc
+    )
+    data = add_account_arpc_metrics(data=data, account_arpc=account_arpc)
+    data = add_ind_rev_distributions(data=data, industry_dist=industry_dist)
+    data = add_acc_rev_distributions(data=data, account_dist=account_dist)
 
+    return data
 
 if __name__ == "__main__":
     try:
@@ -523,16 +632,29 @@ if __name__ == "__main__":
             prep_claims_data()
         )
         industry_arpc, account_arpc = prep_arpc_data()
-        acc_rev_dist = prep_account_revenue_dist_data()
-        ind_rev_dist = prep_industry_revenue_dist_data()
+        account_dist = prep_account_revenue_dist_data()
+        industry_dist = prep_industry_revenue_dist_data()
 
-        combine_data(
+        data = combine_data(
             claims_data=acc_lev_claims_data,
             industry_arpc=industry_arpc,
             account_arpc=account_arpc,
-            account_data=acc_rev_dist,
-            industry_data=ind_rev_dist,
+            account_dist=account_dist,
+            industry_dist=industry_dist,
         )
+        pre_sync_data = combine_data(
+            claims_data=acc_lev_pre_sync_claims_data,
+            industry_arpc=industry_arpc,
+            account_arpc=account_arpc,
+            account_dist=account_dist,
+            industry_dist=industry_dist,
+        )
+
+        # Write both DataFrames to csv
+        data.to_csv("data/prepped/final_data.csv", index=False)
+        pre_sync_data.to_csv("data/prepped/final_pre_sync_data.csv", index=False)
+
+        logger.info("Successfully wrote prepped data files to data/prepped folder.")
 
     except Exception as error:
         logger.error(error)

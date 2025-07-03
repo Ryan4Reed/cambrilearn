@@ -70,7 +70,8 @@ Special note wrt the effect of payout amount on distribution
 - The `industry_segment` entry against each `account_id` in `claims_data` does not correspond with the `industry_segment` entry against each `account_id` in `arpc_values`. This is a problem for joining and using the industry level information in `arpc_data`. 
     - We are going to assume that the relationship between the `industry_segment` column and other industry level columns (eg. [`mean_industry_arpc`, `industry_hit_success_rate`, ...]) is correct. And that the error lies between the account_number and the `industry_segment` assigned. For that we will use `claims_data` as the source of truth.
     - This is another step away from a trustworthy outcome.
-    - We can also see that across different `commercial_subtype` entries wrt the `commercial` `industry_segment`, the industry level values stay consistent. So we need not account for `commercial_subtype` in the join.
+- We can also see that across different `commercial_subtype` entries wrt the `commercial` `industry_segment`, the industry level values stay consistent. So we need not account for `commercial_subtype` in the join.
+
 
 
 
@@ -86,6 +87,11 @@ Special note wrt the effect of payout amount on distribution
 - Unlike `account_revenue_distribution` this dataset does not have any invalid (not in `[0, 1]`) or `NaN` entries in the `revenue_proportion` column.
 
 
+
+## Joining Datasets notes
+- Note that within arpc_values, we do not have industry level information for industry_segment: `Insurance Company'. As such when we calculate industry level values for accounts represented across multiple industries according to the proportion of their entries represented by each, we will ignore this category. It is unfortunately the best we can do.
+- Additionally the `Insurance Company` `industry_segment` is also not present in the `industry_revenue_distribution` dataset. 
+    - We will again weight the `revenue_proportion` per month assigned to each account by the industries that represent them. During this exercise we will once again have to ignore the  `Insurance Company` category.
 
 
 # Train Test Split
