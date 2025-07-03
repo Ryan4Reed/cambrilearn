@@ -93,6 +93,9 @@ Special note wrt the effect of payout amount on distribution
 - Additionally the `Insurance Company` `industry_segment` is also not present in the `industry_revenue_distribution` dataset. 
     - We will again weight the `revenue_proportion` per month assigned to each account by the industries that represent them. During this exercise we will once again have to ignore the  `Insurance Company` category.
 
+# Feature Validation
+We can see in our pearson correlation plots that none of the features have an absolute correlation of more than 0.4, which is not ideal. However, we have engineered a proper set of features. The issue points back to the concerns we've raised about data quality. We will hope that combinations between features give the algorithms additional predictive power.
+
 
 # Train Test Split
 As best we can tell, the data in account_revenue_distribution is lagging behind the raw data in claims_data by 5 months(based on lag in derived columns). As such we won't include any entries from the most recent 5 months (between 2024-02-01 and 2024-07-01) when we engineer our features per account. If we do this, we will be warping the relationship between the datasets and skew our results. 

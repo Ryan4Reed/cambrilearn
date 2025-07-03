@@ -6,7 +6,7 @@ reference_date = pd.Timestamp("2024-07-01")
 sync_date = pd.Timestamp("2024-02-01")
 
 ###########################################################
-#######################GENERAL METHODS#####################
+#################GENERAL DATA PREP METHODS#################
 ###########################################################
 
 
@@ -583,6 +583,7 @@ def add_ind_rev_distributions(
     logger.info("Successfully added industry revenue distribution columns.")
     return data
 
+
 def add_acc_rev_distributions(
     data: pd.DataFrame, account_dist: pd.DataFrame
 ) -> pd.DataFrame:
@@ -590,21 +591,21 @@ def add_acc_rev_distributions(
     Add 18 columns containing the industry revenue distribution for each month wrt each account_id
     """
     # Pivot account_dist
-    account_pivot = (
-        account_dist
-        .pivot(index='account_id', columns='month', values='revenue_proportion')
+    account_pivot = account_dist.pivot(
+        index="account_id", columns="month", values="revenue_proportion"
     )
     account_pivot.columns = [
         f"account_rev_month_{int(month)}" for month in account_pivot.columns
     ]
     # make account_id column again
     account_pivot = account_pivot.reset_index()
-    data = data.merge(account_pivot, on='account_id', how='left')
+    data = data.merge(account_pivot, on="account_id", how="left")
 
     logger.info("Successfully added account_revenue_distribution columns.")
     logger.info(data)
 
     return data
+
 
 def combine_data(
     claims_data: pd.DataFrame,
@@ -625,6 +626,7 @@ def combine_data(
     data = add_acc_rev_distributions(data=data, account_dist=account_dist)
 
     return data
+
 
 if __name__ == "__main__":
     try:
