@@ -2,3 +2,4 @@ data/
 cambrilearn/
 *.log
 *.json
+__pycache__

@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
+from utils.utils import PROPORTION_PRED_COLUMNS, AMOUNT_PRED_COL, SUCCESS_PRED_COL
+
 
 def pearson_corr_scalar(
     data: pd.DataFrame, features: list[str], target: str
@@ -64,79 +66,34 @@ def plot_vector_corr_heatmap(
     plt.close()
 
 
-if __name__ == "__main__":
-    data = pd.read_csv("data/prepped/final_pre_sync_data.csv")
-
-    account_month_cols = [f"account_rev_month_{i}" for i in range(1, 19)]
+def generate_pearson_correlations(data: pd.DataFrame):
+    """
+    Generate pearson correlation plots for each target.
+    """
 
     # All target columns across all tasks
     all_targets = [
-        "median_account_arpc",
-        "account_hit_success_rate",
-    ] + account_month_cols
-    features = [col for col in data.columns if col not in all_targets]
+        AMOUNT_PRED_COL,
+        SUCCESS_PRED_COL,
+    ] + PROPORTION_PRED_COLUMNS
 
-    ##########################################
-    
-    median_acc_arpc_features = [
+    features = [
         col
         for col in data.columns
-        if col
-        not in (
-            all_targets
-            + [
-                "account_id",
-                "mean_account_arpc",
-                "median_account_arpc",
-                "account_hit_success_rate",
-            ]
-        )
+        if col not in (all_targets + ["account_id", "mean_account_arpc"])
     ]
-    corr_median_arpc = pearson_corr_scalar(
-        data, median_acc_arpc_features, "median_account_arpc"
-    )
-    plot_scalar_corr(corr_median_arpc, title="median_account_arpc")
+
+    ##########################################
+
+    corr_median_arpc = pearson_corr_scalar(data, features, AMOUNT_PRED_COL)
+    plot_scalar_corr(corr_median_arpc, title=AMOUNT_PRED_COL)
 
     ###########################################
 
-    account_success_rate_features = [
-        col
-        for col in data.columns
-        if col
-        not in (
-            all_targets
-            + [
-                "account_id",
-                "mean_account_arpc",
-                "median_account_arpc",
-                "account_hit_success_rate",
-            ]
-        )
-    ]
-    corr_median_arpc = pearson_corr_scalar(
-        data, median_acc_arpc_features, "account_hit_success_rate"
-    )
-    plot_scalar_corr(corr_median_arpc, title="account_hit_success_rate")
+    corr_median_arpc = pearson_corr_scalar(data, features, SUCCESS_PRED_COL)
+    plot_scalar_corr(corr_median_arpc, title=SUCCESS_PRED_COL)
 
     ############################################
 
-    account_rev_month_features = [
-        col
-        for col in data.columns
-        if col
-        not in (
-            all_targets
-            + [
-                "account_id",
-                "mean_account_arpc",
-                "median_account_arpc",
-                "account_hit_success_rate",
-            ]
-        )
-    ]
-    rev_month_cols = [f"account_rev_month_{i}" for i in range(1, 19)]
-    corr_rev_month = pearson_corr_vector(data, account_rev_month_features, rev_month_cols)
+    corr_rev_month = pearson_corr_vector(data, features, PROPORTION_PRED_COLUMNS)
     plot_vector_corr_heatmap(corr_rev_month, "account_rev_month")
-    
-
-

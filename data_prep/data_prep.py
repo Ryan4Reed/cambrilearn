@@ -1,5 +1,5 @@
 import pandas as pd
-import logging
+from utils.logger import get_logger
 import os
 
 reference_date = pd.Timestamp("2024-07-01")
@@ -10,27 +10,27 @@ sync_date = pd.Timestamp("2024-02-01")
 ###########################################################
 
 
-def setup_logging():
-    """
-    Setup logger.
-    """
-    os.makedirs("logs", exist_ok=True)
+# def setup_logging():
+#     """
+#     Setup logger.
+#     """
+#     os.makedirs("logs", exist_ok=True)
 
-    # Create a logger specific for this file
-    logger = logging.getLogger("data_prep")
-    logger.setLevel(logging.INFO)
+#     # Create a logger specific for this file
+#     logger = logging.getLogger("data_prep")
+#     logger.setLevel(logging.INFO)
 
-    # Create file handler
-    file_handler = logging.FileHandler("logs/data_prep.log", mode="w")
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_handler.setFormatter(formatter)
-    if not logger.hasHandlers():
-        logger.addHandler(file_handler)
-    return logger
+#     # Create file handler
+#     file_handler = logging.FileHandler("logs/data_prep.log", mode="w")
+#     file_handler.setLevel(logging.INFO)
+#     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+#     file_handler.setFormatter(formatter)
+#     if not logger.hasHandlers():
+#         logger.addHandler(file_handler)
+#     return logger
 
 
-logger = setup_logging()
+logger = get_logger('data_prep', 'logs/data_prep.log')
 
 
 def drop_columns(data: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
@@ -628,7 +628,7 @@ def combine_data(
     return data
 
 
-if __name__ == "__main__":
+def run_data_prep():
     try:
         claims_data, acc_lev_claims_data, acc_lev_pre_sync_claims_data = (
             prep_claims_data()
@@ -657,6 +657,7 @@ if __name__ == "__main__":
         pre_sync_data.to_csv("data/prepped/final_pre_sync_data.csv", index=False)
 
         logger.info("Successfully wrote prepped data files to data/prepped folder.")
+        return data, pre_sync_data
 
     except Exception as error:
         logger.error(error)

@@ -94,10 +94,30 @@ Special note wrt the effect of payout amount on distribution
     - We will again weight the `revenue_proportion` per month assigned to each account by the industries that represent them. During this exercise we will once again have to ignore the  `Insurance Company` category.
 
 # Feature Validation
-We can see in our pearson correlation plots that none of the features have an absolute correlation of more than 0.4, which is not ideal. However, we have engineered a proper set of features. The issue points back to the concerns we've raised about data quality. We will hope that combinations between features give the algorithms additional predictive power.
+- We use the same set of features across our three prediction tasks. All features have a logical relationship to each of the target variables.
+- We can see in our pearson correlation plots that none of the features have an absolute correlation of more than 0.4, which is not ideal. However, we have engineered a proper set of features. The issue points back to the concerns we've raised about data quality. We will hope that combinations between features give the algorithms additional predictive power.
 
 
 # Train Test Split
 As best we can tell, the data in account_revenue_distribution is lagging behind the raw data in claims_data by 5 months(based on lag in derived columns). As such we won't include any entries from the most recent 5 months (between 2024-02-01 and 2024-07-01) when we engineer our features per account. If we do this, we will be warping the relationship between the datasets and skew our results. 
 
 you need to change the above to fit this section
+
+
+
+
+# Feature scaling special note
+Three of the four models we use greatly benefit from feature scaling:
+- ElasticNet is based on the assumption that features are scaled to [0, 1]. This is so that its internal regularisation mechanism are sensible and the model can converge. 
+- Softmax with cross entropy is very sensitive to feature size, thus scaling is necessary.
+- Dirichlet Regression also is sensitive to feature size (large features will dominate if not scaled)
+- The only model that is not sensitive to feature scale is XGboost. 
+
+As three of our models require scaling, we are simply going to scale our data as part of our preprossing. This means that we will lose a measure of feature interpretability wrt our results. However, for this project, that was not made a clear priority.
+
+# Predicting mean vs median
+Our data has two columns providing information on the typical amounts paid out wrt account claims:
+- Mean,
+- Median
+
+Which should we use as the target variable of our prediction tasks wrt payout amounts per account? The primary difference between mean and median wrt our goal, is that mean is sensitive to outliears, while median is more resistent to the influence of outliers. We were asked to provide business with an estimate of the amount of profit that can be expected. In this case, it is better to be conservative. So that we don't over estimate profits based on the influence of rare outliers. If we had rather been asked to provide insight into potential costs, it have been better to be less conservative in our predictions. As we would not want to be surprised by outlier costs. As such we will make use of median as our target variable.
