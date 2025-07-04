@@ -420,7 +420,6 @@ def seperate_arpc_data(data: pd.DataFrame) -> pd.DataFrame:
     account_arpc = data[
         [
             "account_id",
-            "mean_account_arpc",
             "median_account_arpc",
             "account_hit_success_rate",
         ]
@@ -434,7 +433,7 @@ def prep_arpc_data() -> pd.DataFrame:
     logger.info("\n==================== ARPC DATA ====================")
     data = pd.read_csv("data/raw/arpc_values.csv")
     # drop irrelevant columns
-    data = drop_columns(data=data, columns=["account_name", "commercial_subtype"])
+    data = drop_columns(data=data, columns=["account_name", "commercial_subtype", "mean_account_arpc"])
 
     # seperate out account and industry level information
     industry_arpc, account_arpc = seperate_arpc_data(data=data)
@@ -627,9 +626,18 @@ def combine_data(
 
     return data
 
+def drop_median_arpc_outliers(data: pd.DataFrame, threshold: int) -> pd.DataFrame:
+    """
+    Drop outliers based on value of median_account_arpc.
+    """
+
+    data = data[data['median_account_arpc']<= threshold]
+    logger.info("Successfully removed outliers.")
+    return data
 
 def run_data_prep():
     try:
+        print(">Starting data preparation pipeline")
         claims_data, acc_lev_claims_data, acc_lev_pre_sync_claims_data = (
             prep_claims_data()
         )
@@ -652,11 +660,14 @@ def run_data_prep():
             industry_dist=industry_dist,
         )
 
+        pre_sync_data = drop_median_arpc_outliers(data=pre_sync_data, threshold = 5000)
+
         # Write both DataFrames to csv
         data.to_csv("data/prepped/final_data.csv", index=False)
         pre_sync_data.to_csv("data/prepped/final_pre_sync_data.csv", index=False)
 
         logger.info("Successfully wrote prepped data files to data/prepped folder.")
+        print('>Data preparation pipeline executed successfully')
         return data, pre_sync_data
 
     except Exception as error:

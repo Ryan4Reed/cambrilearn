@@ -70,7 +70,7 @@ def generate_pearson_correlations(data: pd.DataFrame):
     """
     Generate pearson correlation plots for each target.
     """
-
+    print('>Generating pearson coefficients')
     # All target columns across all tasks
     all_targets = [
         AMOUNT_PRED_COL,
@@ -80,7 +80,7 @@ def generate_pearson_correlations(data: pd.DataFrame):
     features = [
         col
         for col in data.columns
-        if col not in (all_targets + ["account_id", "mean_account_arpc"])
+        if col not in (all_targets + ["account_id"])
     ]
 
     ##########################################
@@ -97,3 +97,4 @@ def generate_pearson_correlations(data: pd.DataFrame):
 
     corr_rev_month = pearson_corr_vector(data, features, PROPORTION_PRED_COLUMNS)
     plot_vector_corr_heatmap(corr_rev_month, "account_rev_month")
+    print('>Pearson coefficients generated successfully')

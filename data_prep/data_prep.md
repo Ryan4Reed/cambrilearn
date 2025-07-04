@@ -72,14 +72,25 @@ Special note wrt the effect of payout amount on distribution
     - This is another step away from a trustworthy outcome.
 - We can also see that across different `commercial_subtype` entries wrt the `commercial` `industry_segment`, the industry level values stay consistent. So we need not account for `commercial_subtype` in the join.
 
+#### Predicting mean vs median
+Our data has two columns providing information on the typical amounts paid out wrt account claims:
+- Mean,
+- Median
 
+Which should we use as the target variable of our prediction tasks wrt payout amounts per account? The primary difference between mean and median wrt our goal, is that mean is sensitive to outliears, while median is more resistent to the influence of outliers. We were asked to provide business with an estimate of the amount of profit that can be expected. In this case, it is better to be conservative. So that we don't over estimate profits based on the influence of rare outliers. If we had rather been asked to provide insight into potential costs, it have been better to be less conservative in our predictions. As we would not want to be surprised by outlier costs. As such we will make use of median as our target variable.
+
+#### Removing outliers
+Almost all of our datapoints have an median_account_arpc of less then 5000. Then there are a handful of entries that range between [5000, 25000]. Such outliers will most likely make it difficult for any model to be performant given our limited data quality. We are further motivated to drop such values given the same reasoning as discussed in the `Predicting mean vs median` section above. However, what we will do is make an informed decision and test model performance when including these datapoints and then removing them. 
+- After experimenting the model was able to perform significantly better on the test set after removing these outliers. E.g RMSE went from 5000+ to plus minus 700. R2 went from < 0 which is worse then predicting mean to Test R^2: 0.1960. As such we proceed without them. 
 
 
 ## account_revenue_distribution notes
 - The `claim_count` column in `account_revenue_distribution` is not consistent with the `claims_data` set. For example for `account_id = 0010G00002CbubXQAR` we see a `claim_count` entry of `543`, however, there are 1968 claim entries in `claims_data` wrt this account.
     - This again raises question about how up to date/trustworth the `account_revenue_distribution` dataset is, however we make due for now and simply will not make use of the claim_count column in `account_revenue_distribution` but rather recalculate it from the `claims_data` set.
+
+#### Removing outliers
 - Although the sum of payment proportions over 18 months wrt a particular account always sum to 1, there are entries where the proportion for a particular month is indeed greater than 1 or even less than zero (correcting for prior month of > 1). 
-    - Note that entries like this represent administration errors. It could be that business wants to include such occurences in predictions, but without further information, we deem that adding them to our training data simply introduces noise at no additional value. There are 21 accounts that have this type of error. As there will remain more than enough accounts for our training set if we remove them (364) we won't use such rows for our training set. 
+    - Note that entries like this represent administration errors. It could be that business wants to include such occurences in predictions, but without further information, we deem that adding them to our training data simply introduces noise at no additional value. There are 21 accounts that have this type of error. As there will remain more than enough accounts for our training set if we remove them (364) we won't use such rows for our training set. You can essentially views these rows as outliers that are being removed.
     - As some of these accounts include accounts for which revenue is still pending, we will maintain there distributions in the data, as for these accounts we will use the detailed distribution instead of rellying on a predicted one. 
 
 ## industry_revenue_distribution notes
@@ -115,9 +126,6 @@ Three of the four models we use greatly benefit from feature scaling:
 
 As three of our models require scaling, we are simply going to scale our data as part of our preprossing. This means that we will lose a measure of feature interpretability wrt our results. However, for this project, that was not made a clear priority.
 
-# Predicting mean vs median
-Our data has two columns providing information on the typical amounts paid out wrt account claims:
-- Mean,
-- Median
 
-Which should we use as the target variable of our prediction tasks wrt payout amounts per account? The primary difference between mean and median wrt our goal, is that mean is sensitive to outliears, while median is more resistent to the influence of outliers. We were asked to provide business with an estimate of the amount of profit that can be expected. In this case, it is better to be conservative. So that we don't over estimate profits based on the influence of rare outliers. If we had rather been asked to provide insight into potential costs, it have been better to be less conservative in our predictions. As we would not want to be surprised by outlier costs. As such we will make use of median as our target variable.
+# Including targets as features?
+It is indeed possible to include eg the predicted median_account_arpc values when predicting account_hit_success_rate. It is logical to expect there to be a relationship between these metrics. However, Given that we already provide the models with industry level information wrt median, success rate and proportion. We decide to relly on these instead of stacking models. If there was time I would test both to see which performs best.

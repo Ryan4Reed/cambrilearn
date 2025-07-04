@@ -3,3 +3,4 @@ cambrilearn/
 *.log
 *.json
 __pycache__
+*.png
