@@ -129,3 +129,10 @@ As three of our models require scaling, we are simply going to scale our data as
 
 # Including targets as features?
 It is indeed possible to include eg the predicted median_account_arpc values when predicting account_hit_success_rate. It is logical to expect there to be a relationship between these metrics. However, Given that we already provide the models with industry level information wrt median, success rate and proportion. We decide to relly on these instead of stacking models. If there was time I would test both to see which performs best.
+
+
+
+
+# Approaches to explore for proportion prediction if we had enough data/time
+- Dirichlet regression
+- softmax with cross entropy loss function

@@ -3,7 +3,7 @@ import pandas as pd
 from utils.utils import PROPORTION_PRED_COLUMNS, AMOUNT_PRED_COL, SUCCESS_PRED_COL
 from data_prep.scaling_data import scale_split_data
 from utils.logger import get_logger
-from models.models import train_and_evaluate_elasticnet, train_and_evaluate_xgboost
+from models.models import train_and_evaluate_elasticnet, train_and_evaluate_xgboost, train_and_evaluate_xgboost_clr
 
 
 logger = get_logger("modelling_pipeline", "logs/modelling_pipeline.log")
@@ -74,7 +74,7 @@ def run_models(pre_sync_data: pd.DataFrame):
 
     run_ammount_models(train_data=train_scaled, test_data=test_scaled)
     run_success_models(train_data=train_scaled, test_data=test_scaled)
-
+    run_proportion_models(train_data=train_scaled, test_data=test_scaled)
 
 
 def run_ammount_models(train_data: pd.DataFrame, test_data: pd.DataFrame):
@@ -128,3 +128,21 @@ def run_success_models(train_data: pd.DataFrame, test_data: pd.DataFrame):
 
     )
     print('>Amount models ran successfully')
+
+
+def run_proportion_models(train_data: pd.DataFrame, test_data: pd.DataFrame):
+    print('>Running proportion model')
+    features = get_features(train_data)
+
+    ##########################################
+
+    print("----->Training xgboost_CLR_model")
+    xgboost_model, xgboost_rmse, xgboost_r2 = train_and_evaluate_xgboost_clr(
+        train_data=train_data,
+        test_data=test_data,
+        features=features,
+        target_columns=PROPORTION_PRED_COLUMNS,
+        random_state=random_state
+
+    )
+    print('>Proportion model ran successfully')

@@ -1,0 +1,5 @@
+2025-07-04 17:05:08,360 - INFO - 
+================== Scaling Data ==================
+2025-07-04 17:05:08,360 - INFO - Train rows: 101, Test rows: 44
+2025-07-04 17:05:08,366 - INFO - Applied scaling to train and test sets.
+2025-07-04 17:05:08,377 - INFO - Saved scaled and split data and scaler to file

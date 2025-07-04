@@ -601,7 +601,6 @@ def add_acc_rev_distributions(
     data = data.merge(account_pivot, on="account_id", how="left")
 
     logger.info("Successfully added account_revenue_distribution columns.")
-    logger.info(data)
 
     return data
 

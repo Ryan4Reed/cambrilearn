@@ -1,0 +1,72 @@
+2025-07-04 17:05:06,758 - INFO - 
+==================== CLAIMS DATA ====================
+2025-07-04 17:05:06,941 - INFO - Successfully dropped the following columns: ['case_number', 'is_deleted', 'type', 'account_name']
+2025-07-04 17:05:06,952 - INFO - Converted 15 entries matching: ['Unknown Account'] to NaN from column: account_id
+2025-07-04 17:05:06,964 - INFO - Dropped 15 rows with NaN in columns: ['account_id']
+2025-07-04 17:05:06,979 - INFO - Converted 2 entries matching: ['3120-04-03', '3130-04-03'] to NaN from column: loss_date
+2025-07-04 17:05:07,015 - INFO - Converted the following columns to datetime: ['date_received', 'loss_date', 'start_date']
+2025-07-04 17:05:07,021 - INFO - Dropped 1071 rows with date_received on/after 2024-07-01 00:00:00
+2025-07-04 17:05:07,033 - INFO - Converted 13 NaN entries to Unassigned from column: industry_segment
+2025-07-04 17:05:07,043 - INFO - Dropped 20 rows with NaN in columns: ['commercial_subtype']
+2025-07-04 17:05:07,047 - INFO - Successfully dropped the following columns: ['is_closed']
+2025-07-04 17:05:07,048 - INFO - Successfully created column: is_closed
+2025-07-04 17:05:07,054 - INFO - Successfully split data
+2025-07-04 17:05:07,054 - INFO - Length of complete dataset: 200544
+2025-07-04 17:05:07,054 - INFO - Length of presync dataset: 194382
+2025-07-04 17:05:07,058 - INFO - Successfully dropped the following columns: ['months_since_joined']
+2025-07-04 17:05:07,068 - INFO - Successfully created column: months_since_joined
+2025-07-04 17:05:07,073 - INFO - Successfully dropped the following columns: ['last_year_claim_count']
+2025-07-04 17:05:07,087 - INFO - Successfully created column: last_year_claim_count
+2025-07-04 17:05:07,091 - INFO - Successfully dropped the following columns: ['months_since_last_claim']
+2025-07-04 17:05:07,104 - INFO - Successfully created column: months_since_last_claim
+2025-07-04 17:05:07,109 - INFO - Successfully dropped the following columns: ['two_months_dry', 'six_months_dry', 'one_year_dry', 'two_years_dry']
+2025-07-04 17:05:07,112 - INFO - Successfully created columns: ['two_months_dry', 'six_months_dry', 'one_year_dry', 'two_years_dry']
+2025-07-04 17:05:07,120 - INFO - Successfully created column: date_issue_proportion
+2025-07-04 17:05:07,195 - INFO - Successfully adding industry_segment proportion columns
+2025-07-04 17:05:07,201 - INFO - Successfully dropped the following columns: ['industry_segment']
+2025-07-04 17:05:07,228 - INFO - Successfully created column: days_between_loss_and_claim (NaNs filled with -1)
+2025-07-04 17:05:07,232 - INFO - Successfully dropped the following columns: ['date_received', 'loss_date', 'start_date', 'date_issue']
+2025-07-04 17:05:07,233 - INFO - Successfully engineered claims features
+2025-07-04 17:05:07,237 - INFO - Successfully dropped the following columns: ['months_since_joined']
+2025-07-04 17:05:07,245 - INFO - Successfully created column: months_since_joined
+2025-07-04 17:05:07,248 - INFO - Successfully dropped the following columns: ['last_year_claim_count']
+2025-07-04 17:05:07,259 - INFO - Successfully created column: last_year_claim_count
+2025-07-04 17:05:07,263 - INFO - Successfully dropped the following columns: ['months_since_last_claim']
+2025-07-04 17:05:07,273 - INFO - Successfully created column: months_since_last_claim
+2025-07-04 17:05:07,278 - INFO - Successfully dropped the following columns: ['two_months_dry', 'six_months_dry', 'one_year_dry', 'two_years_dry']
+2025-07-04 17:05:07,280 - INFO - Successfully created columns: ['two_months_dry', 'six_months_dry', 'one_year_dry', 'two_years_dry']
+2025-07-04 17:05:07,288 - INFO - Successfully created column: date_issue_proportion
+2025-07-04 17:05:07,354 - INFO - Successfully adding industry_segment proportion columns
+2025-07-04 17:05:07,360 - INFO - Successfully dropped the following columns: ['industry_segment']
+2025-07-04 17:05:07,389 - INFO - Successfully created column: days_between_loss_and_claim (NaNs filled with -1)
+2025-07-04 17:05:07,394 - INFO - Successfully dropped the following columns: ['date_received', 'loss_date', 'start_date', 'date_issue']
+2025-07-04 17:05:07,394 - INFO - Successfully engineered claims features
+2025-07-04 17:05:07,425 - INFO - Successfully collapsed data to account_id level dataset
+2025-07-04 17:05:07,454 - INFO - Successfully collapsed data to account_id level dataset
+2025-07-04 17:05:07,456 - INFO - Successfully one-hot encoded columns: ['commercial_subtype']
+2025-07-04 17:05:07,457 - INFO - Successfully one-hot encoded columns: ['commercial_subtype']
+2025-07-04 17:05:07,457 - INFO - Successfully prepped claims_data
+2025-07-04 17:05:07,458 - INFO - 
+==================== ARPC DATA ====================
+2025-07-04 17:05:07,459 - INFO - Successfully dropped the following columns: ['account_name', 'commercial_subtype', 'mean_account_arpc']
+2025-07-04 17:05:07,460 - INFO - Successfully collapsed data to industry_segment level dataset
+2025-07-04 17:05:07,460 - INFO - Successfully collapsed data to account_id level dataset
+2025-07-04 17:05:07,460 - INFO - Successfully prepped arpc_data
+2025-07-04 17:05:07,460 - INFO - 
+==================== ACCOUNT_REVENUE_DIST DATA ====================
+2025-07-04 17:05:07,463 - INFO - Successfully dropped the following columns: ['account_name', 'claim_count']
+2025-07-04 17:05:07,464 - INFO - Dropped 21 accounts with invalid proportions.
+2025-07-04 17:05:07,465 - INFO - Dropped 252 rows with NaN in columns: ['revenue_proportion']
+2025-07-04 17:05:07,465 - INFO - Successfully prepped account_revenue_dist_data
+2025-07-04 17:05:07,465 - INFO - 
+==================== INDUSTRY_REVENUE_DIST DATA ====================
+2025-07-04 17:05:07,465 - INFO - Successfully dropped the following columns: ['claim_count']
+2025-07-04 17:05:07,465 - INFO - Successfully prepped industry_revenue_dist_data
+2025-07-04 17:05:07,466 - INFO - Successfully added weighted industry metrics.
+2025-07-04 17:05:07,470 - INFO - Successfully added industry revenue distribution columns.
+2025-07-04 17:05:07,472 - INFO - Successfully added account_revenue_distribution columns.
+2025-07-04 17:05:07,473 - INFO - Successfully added weighted industry metrics.
+2025-07-04 17:05:07,476 - INFO - Successfully added industry revenue distribution columns.
+2025-07-04 17:05:07,478 - INFO - Successfully added account_revenue_distribution columns.
+2025-07-04 17:05:07,478 - INFO - Successfully removed outliers.
+2025-07-04 17:05:07,514 - INFO - Successfully wrote prepped data files to data/prepped folder.

@@ -224,3 +224,100 @@ def train_and_evaluate_xgboost(
     logger.info("================== DONE ==================\n")
 
     return best_model, rmse, r2
+
+
+def clr_transform(Y):
+    """
+    Centered log-ratio transformation.
+    """
+    Y_safe = np.clip(Y, 1e-10, None)
+    log_Y = np.log(Y_safe)
+    gm = log_Y.mean(axis=1, keepdims=True)
+    return log_Y - gm
+
+
+def clr_inverse(Y_clr):
+    """
+    Inverse of CLR transformation to get proportions summing to 1.
+    """
+    exp = np.exp(Y_clr)
+    return exp / exp.sum(axis=1, keepdims=True)
+
+
+def train_and_evaluate_xgboost_clr(
+    train_data: pd.DataFrame,
+    test_data: pd.DataFrame,
+    features: list[str],
+    target_columns: list[str],
+    random_state: int,
+    n_splits: int = 5,
+):
+    """
+    Xgboost regression for vector target. Making use of centered log-ratio transformations.
+    """
+
+    logger.info(
+        f"\n================== XGBoost CLR Regression for Targets: {target_columns} =================="
+    )
+
+    # Extract features and targets
+    X_train = train_data[features]
+    Y_train_raw = train_data[target_columns].values
+    X_test = test_data[features]
+    Y_test_raw = test_data[target_columns].values
+    logger.info(f"Train size: {X_train.shape[0]}, Test size: {X_test.shape[0]}")
+
+    # CLR-transform targets
+    Y_train_clr = clr_transform(Y_train_raw)
+
+    # Define base XGBoost model
+    base_model = xgb.XGBRegressor(
+        objective="reg:squarederror", random_state=random_state, verbosity=0
+    )
+
+    # Hyperparameter grid
+    param_grid = {
+        "estimator__max_depth": [3, 4, 5],
+        "estimator__learning_rate": [0.01, 0.05, 0.1],
+        "estimator__n_estimators": [50, 100, 200],
+        "estimator__subsample": [0.7, 0.9, 1.0],
+    }
+
+    cv = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+
+    # Multitarget regression via GridSearchCV with wrapper
+    from sklearn.multioutput import MultiOutputRegressor
+
+    model = MultiOutputRegressor(base_model)
+
+    grid_search = GridSearchCV(
+        model, param_grid, cv=cv, scoring="neg_mean_squared_error", n_jobs=-1
+    )
+
+    logger.info("Starting grid search...")
+    grid_search.fit(X_train, Y_train_clr)
+
+    best_model = grid_search.best_estimator_
+
+    logger.info(f"Best Parameters: {grid_search.best_params_}")
+
+    # Predict in CLR space
+    Y_pred_clr = best_model.predict(X_test)
+    # Inverse CLR to get valid proportions
+    Y_pred_proportions = clr_inverse(Y_pred_clr)
+
+    # Evaluate RMSE over all components
+    rmse = np.sqrt(mean_squared_error(Y_test_raw, Y_pred_proportions))
+    r2 = r2_score(Y_test_raw, Y_pred_proportions)
+
+    logger.info(f"Test RMSE: {rmse:.4f}")
+    logger.info(f"Test R^2: {r2:.4f}")
+
+    # Save model
+    m_path = f"models/xgboost/best_model/proportion_rev.pkl"
+    joblib.dump(best_model, m_path)
+    logger.info(f"Saved trained model to: {m_path}")
+
+    logger.info("================== DONE ==================\n")
+
+    return best_model, rmse, r2
