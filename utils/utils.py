@@ -12,23 +12,14 @@ def make_folders():
     """
 
     folders_to_create = [
-        "data_prep",
-        "revenue",
-        "utils",
         "logs",
-        "app",
         "data",
         "data/plots",
         "data/prepped",
         "data/raw",
         "data/revenue",
         "data/scaler",
-        "ml_pipeline",
-        "ml_pipeline/elasticnet",
-        "ml_pipeline/elasticnet/best_model",
         "ml_pipeline/elasticnet/gs_results",
-        "ml_pipeline/xgboost",
-        "ml_pipeline/xgboost/best_model",
         "ml_pipeline/xgboost/gs_results",
     ]
 

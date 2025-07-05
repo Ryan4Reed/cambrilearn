@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Account Revenue Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f9fc;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #34495e;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 30px auto;
+            background-color: white;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        h2, h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        form {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            flex: 1 1 200px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .result-section {
+            margin-top: 30px;
+        }
+
+        .total-revenue {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #27ae60;
+        }
+        .disclaimer {
+            background-color: #fef3c7;
+            color: #92400e;
+            padding: 10px;
+            border: 1px solid #fcd34d;
+            border-radius: 4px;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Account Revenue Lookup</h1>
+    </header>
+    <main>
+        <form method="POST">
+            <label for="account_id">Account ID:</label>
+            <input type="text" id="account_id" name="account_id" value="{{ account_id }}" required>
+            <button type="submit">Search</button>
+        </form>
+
+        {% if result %}
+            {% if result.error %}
+                <p class="error">{{ result.error }}</p>
+            {% else %}
+                <div class="result-section">
+                    <p class="disclaimer">
+                        The values displayed here are a result of prediction models that performed poorly and are highly likely to be incorrect.
+                    </p>
+                    <h2>Results for {{ result.account_id }}</h2>
+                    <p class="total-revenue">Total Revenue: {{ result.total_revenue | round(2) }}</p>
+                    <h3>Monthly Distribution</h3>
+                    <table>
+                        <tr>
+                            <th>Month</th>
+                            <th>Revenue</th>
+                        </tr>
+                        {% for val in result.monthly_values %}
+                        <tr>
+                            <td>Month {{ loop.index }}</td>
+                            <td>{{ val | round(2) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+        {% endif %}
+    </main>
+</body>
+</html>
