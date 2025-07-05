@@ -1,3 +1,19 @@
+# Approach Overview
+
+After reading through the assignment and spending some time with the data, it’s clear that the project is not a typical data science project. Reason being that the datapoint that needs to be predicted (ie. account_revenue_distribution) and the raw data provided as input to the prediction task lives on different levels of aggregation. More specifically, the provided information wrt account_revenue_distribution has been aggregated across claims wrt a particular account. 
+
+Let me illustrate what I mean. In our claims_data dataset, we have an entry per claim. But our account_revenue_distribution data is given wrt a particular account. Typically, for a project like this we would expect to receive the revenue distribution for each claim entry, but we don’t have that. What we have is the aggregated distribution based on all claims per account. 
+
+The practical impact of this is that the size of our data decreases significantly as features we use/engineer will need to live on an account level, not a claim level. So we have as many datapoints as there are accounts.
+
+Using such an aggregated distribution for training is equivalent to training a model on the output of another model, which is not something you want to do if you can avoid it (especially when you don’t have clarity on exactly how the aggregated distributions were calculated). However, in this case it is the best option available to us. 
+
+
+
+
+
+
+
 # Data Preparation
 
 

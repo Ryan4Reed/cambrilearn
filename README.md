@@ -1,9 +1,8 @@
 # Cambrilearn project
 
-This project is a modular, command-line-driven machine learning pipeline for preparing data, validating features, training models, making predictions, and estimating revenue.  
+This project is designed to make the best use of our claims data in order to predict the expected revenue post `2024-06-30`
 
-It is designed to support optional execution of pipeline stages via command-line flags for maximum flexibility in development and production.
-
+We have also implemented a simple user interface for interacting with the data on an account level.
 ---
 
 ## Features
@@ -17,7 +16,7 @@ It is designed to support optional execution of pipeline stages via command-line
 - **Modular Execution**: Run the pipeline end-to-end or individual steps as needed
 
 #### User interface
-- See the Frontend Application section below.
+- See the **Frontend Application** section below.
 ---
 
 --
@@ -42,14 +41,17 @@ Cambrilearn/
 │   └── ...
 ├── data/
 │   └── ...
+├── documentation/
+│   └── report.md
 ├── main.py
 ├── requirements.txt
 ├── app/
 │   ├── app.py
-
-└──
+└── ├── templates/index.html
 ```
 
+## Additional documentation
+Please find additional documentation wrt the notes taken, considerations and decisions made in the documentation folder.
 
 ## Installation
 
@@ -104,11 +106,13 @@ Generates predictions and calculates estimated revenue.
 ## Frontend Application
 
 There is also a user interface for easily interacting with the data.
+You will need to run the ml pipeline in order to generate required data files before you can make use of the UI.
+
+#### To launch UI
+Simply execute the following command in termninal and head to `http://127.0.0.1:5000/`
 ```bash
-run Ml_pipeline to generate required data files before launching UI.
+python app/app.py
 ```
-
-
 
 ---
 
