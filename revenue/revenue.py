@@ -46,11 +46,13 @@ def determine_revenue(acc_level_data: pd.DataFrame, claim_level_data: pd.DataFra
     )
 
     # determine final expected amount per month per account
+    res_cols = []
     for i, column_name in enumerate(PROPORTION_PRED_COLUMNS, start=1):
-        acc_level_data[f"account_rev_month_{i}"] = acc_level_data["expected_amount"] * acc_level_data[column_name]
-
+        res_col = f"account_rev_month_{i}"
+        acc_level_data[res_col] = acc_level_data["expected_amount"] * acc_level_data[column_name]
+        res_cols.append(res_col)
     # write data to file
-    acc_level_data.to_csv('data/revenue/revenue.csv', index=False)
+    acc_level_data[['account_id']+ res_cols].to_csv('data/revenue/revenue.csv', index=False)
     logger.info('Successfully wrote revenue data to file')
     logger.info(logger.info(f"\n================== Done =================="))
     print(">Revenue Determined Successfully")

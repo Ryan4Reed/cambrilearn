@@ -1,54 +1,54 @@
-2025-07-05 12:53:56,848 - INFO - 
+2025-07-05 13:31:28,572 - INFO - 
 ================== Make Amount Predictions ==================
-2025-07-05 12:53:56,848 - INFO - Successfully loaded pkl: data/scaler/standard_scaler.pkl
-2025-07-05 12:53:57,063 - INFO - Successfully loaded pkl: ml_pipeline/xgboost/best_model/median_account_arpc.pkl
-2025-07-05 12:53:57,064 - INFO - Number of entries to predict: 917
-2025-07-05 12:53:57,074 - INFO - ================== Amount Predictions Complete ==================
+2025-07-05 13:31:28,572 - INFO - Successfully loaded pkl: data/scaler/standard_scaler.pkl
+2025-07-05 13:31:28,777 - INFO - Successfully loaded pkl: ml_pipeline/xgboost/best_model/median_account_arpc.pkl
+2025-07-05 13:31:28,779 - INFO - Number of entries to predict: 917
+2025-07-05 13:31:28,793 - INFO - ================== Amount Predictions Complete ==================
 
-2025-07-05 12:53:57,074 - INFO - 
+2025-07-05 13:31:28,794 - INFO - 
 ================== Make Success Rate Predictions ==================
-2025-07-05 12:53:57,074 - INFO - Number of values to predict: 917
-2025-07-05 12:53:57,074 - INFO - Mean for column account_hit_success_rate: 0.685864330963873
-2025-07-05 12:53:57,074 - INFO - ================== Success Rate Predictions Complete ==================
+2025-07-05 13:31:28,794 - INFO - Number of values to predict: 917
+2025-07-05 13:31:28,794 - INFO - Mean for column account_hit_success_rate: 0.685864330963873
+2025-07-05 13:31:28,795 - INFO - ================== Success Rate Predictions Complete ==================
 
-2025-07-05 12:53:57,074 - INFO - 
+2025-07-05 13:31:28,795 - INFO - 
 ================== Make Revenue Proportion Predictions ==================
-2025-07-05 12:53:57,075 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,075 - INFO - Mean for column account_prop_month_1: 0.0397255069428354
-2025-07-05 12:53:57,076 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,076 - INFO - Mean for column account_prop_month_2: 0.10740362167142649
-2025-07-05 12:53:57,077 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,077 - INFO - Mean for column account_prop_month_3: 0.1318589342329997
-2025-07-05 12:53:57,078 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,078 - INFO - Mean for column account_prop_month_4: 0.14449364360070335
-2025-07-05 12:53:57,078 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,078 - INFO - Mean for column account_prop_month_5: 0.1467315521499603
-2025-07-05 12:53:57,079 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,079 - INFO - Mean for column account_prop_month_6: 0.11136163537119827
-2025-07-05 12:53:57,080 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,080 - INFO - Mean for column account_prop_month_7: 0.08088728593680482
-2025-07-05 12:53:57,080 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,080 - INFO - Mean for column account_prop_month_8: 0.05204641169426698
-2025-07-05 12:53:57,081 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,081 - INFO - Mean for column account_prop_month_9: 0.046922594453161624
-2025-07-05 12:53:57,082 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,082 - INFO - Mean for column account_prop_month_10: 0.04597903533150416
-2025-07-05 12:53:57,082 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,082 - INFO - Mean for column account_prop_month_11: 0.023986270689950333
-2025-07-05 12:53:57,083 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,083 - INFO - Mean for column account_prop_month_12: 0.012211393312662393
-2025-07-05 12:53:57,084 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,084 - INFO - Mean for column account_prop_month_13: 0.011463964420720608
-2025-07-05 12:53:57,084 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,084 - INFO - Mean for column account_prop_month_14: 0.018981800848412216
-2025-07-05 12:53:57,085 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,085 - INFO - Mean for column account_prop_month_15: 0.006791075503689767
-2025-07-05 12:53:57,085 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,085 - INFO - Mean for column account_prop_month_16: 0.009359699792644977
-2025-07-05 12:53:57,086 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,086 - INFO - Mean for column account_prop_month_17: 0.005722227292011866
-2025-07-05 12:53:57,087 - INFO - Number of values to predict: 818
-2025-07-05 12:53:57,087 - INFO - Mean for column account_prop_month_18: 0.004073346755046477
-2025-07-05 12:53:57,087 - INFO - Sum of means for each of the 18 months is equal to: 0.9999999999999997
-2025-07-05 12:53:57,087 - INFO - ================== Revenue Proportion Predictions Complete ==================
+2025-07-05 13:31:28,795 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,795 - INFO - Mean for column account_prop_month_1: 0.0397255069428354
+2025-07-05 13:31:28,796 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,796 - INFO - Mean for column account_prop_month_2: 0.10740362167142649
+2025-07-05 13:31:28,796 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,796 - INFO - Mean for column account_prop_month_3: 0.1318589342329997
+2025-07-05 13:31:28,797 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,797 - INFO - Mean for column account_prop_month_4: 0.14449364360070335
+2025-07-05 13:31:28,798 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,798 - INFO - Mean for column account_prop_month_5: 0.1467315521499603
+2025-07-05 13:31:28,798 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,799 - INFO - Mean for column account_prop_month_6: 0.11136163537119827
+2025-07-05 13:31:28,799 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,799 - INFO - Mean for column account_prop_month_7: 0.08088728593680482
+2025-07-05 13:31:28,800 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,800 - INFO - Mean for column account_prop_month_8: 0.05204641169426698
+2025-07-05 13:31:28,800 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,800 - INFO - Mean for column account_prop_month_9: 0.046922594453161624
+2025-07-05 13:31:28,801 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,801 - INFO - Mean for column account_prop_month_10: 0.04597903533150416
+2025-07-05 13:31:28,802 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,802 - INFO - Mean for column account_prop_month_11: 0.023986270689950333
+2025-07-05 13:31:28,802 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,802 - INFO - Mean for column account_prop_month_12: 0.012211393312662393
+2025-07-05 13:31:28,803 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,803 - INFO - Mean for column account_prop_month_13: 0.011463964420720608
+2025-07-05 13:31:28,803 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,803 - INFO - Mean for column account_prop_month_14: 0.018981800848412216
+2025-07-05 13:31:28,804 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,804 - INFO - Mean for column account_prop_month_15: 0.006791075503689767
+2025-07-05 13:31:28,805 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,805 - INFO - Mean for column account_prop_month_16: 0.009359699792644977
+2025-07-05 13:31:28,805 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,805 - INFO - Mean for column account_prop_month_17: 0.005722227292011866
+2025-07-05 13:31:28,806 - INFO - Number of values to predict: 818
+2025-07-05 13:31:28,806 - INFO - Mean for column account_prop_month_18: 0.004073346755046477
+2025-07-05 13:31:28,806 - INFO - Sum of means for each of the 18 months is equal to: 0.9999999999999997
+2025-07-05 13:31:28,806 - INFO - ================== Revenue Proportion Predictions Complete ==================
 

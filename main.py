@@ -6,6 +6,7 @@ from ml_pipeline.modelling_pipeline import run_models
 from ml_pipeline.predictions import make_predictions
 from revenue.revenue import determine_revenue
 from utils.logger import get_logger
+from utils.utils import make_folders
 
 
 logger = get_logger("main", "logs/main.log")
@@ -43,6 +44,7 @@ def main():
     """
     try:
         print(">Starting Application")
+        make_folders()
         args = parse_args()
         if args.run_data_prep:
             acc_level_data, acc_level_pre_sync_data, claim_level_data = run_data_prep()
