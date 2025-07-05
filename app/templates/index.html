@@ -116,7 +116,7 @@
 </head>
 <body>
     <header>
-        <h1>Account Revenue Lookup</h1>
+        <h1>Account Revenue Predictions</h1>
     </header>
     <main>
         <form method="POST">
@@ -139,12 +139,14 @@
                     <table>
                         <tr>
                             <th>Month</th>
+                            <th>Year</th>
                             <th>Revenue</th>
                         </tr>
-                        {% for val in result.monthly_values %}
+                        {% for month, year, revenue in result.monthly_distribution %}
                         <tr>
-                            <td>Month {{ loop.index }}</td>
-                            <td>{{ val | round(2) }}</td>
+                            <td>{{ month }}</td>
+                            <td>{{ year }}</td>
+                            <td>{{ revenue | round(2) }}</td>
                         </tr>
                         {% endfor %}
                     </table>
