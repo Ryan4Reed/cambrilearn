@@ -1,3 +1,5 @@
+This writeup contains some additional context on process and decisions. Please see log files, main readme, and interact with the data via the app sitting ing `app/` for additional information.
+
 # Approach Overview
 
 After reading through the assignment and spending some time with the data, it’s clear that the project is not a typical data science project. Reason being that the datapoint that needs to be predicted (ie. `account_revenue_distribution`) and the raw data provided as input to the prediction task lives on different levels of aggregation. More specifically, the provided information wrt `account_revenue_distribution` has been aggregated across claims wrt a particular account. 
@@ -119,12 +121,12 @@ Here follows a list of bullets details points to note wrt preparting this datase
 
 
 
-### Joining Datasets notes
+#### Joining Datasets notes
 - Note that within arpc_values, we do not have industry level information for industry_segment: `Insurance Company'. As such when we calculate industry level values for accounts represented across multiple industries according to the proportion of their entries represented by each, we will ignore this category. It is unfortunately the best we can do.
 - Additionally the `Insurance Company` `industry_segment` is also not present in the `industry_revenue_distribution` dataset. 
     - We will again weight the `revenue_proportion` per month assigned to each account by the industries that represent them. During this exercise we will once again have to ignore the  `Insurance Company` category.
 
-### Feature Validation
+#### Feature Validation
 - We use the same set of features across our three prediction tasks. All features have a logical relationship to each of the target variables.
 - We can see in our pearson correlation plots that none of the features have an absolute correlation of more than 0.4, which is not ideal. However, we have engineered a proper set of features. The issue points back to the concerns we've raised about data quality. We will hope that combinations between features give the algorithms additional predictive power.
 
@@ -171,11 +173,14 @@ Should we include the predicted median_account_arpc values when predicting accou
 #### Hyperparameter tuning
 For each model we've used grid search to tune the models hyperparameters. In addition we plot each models performance on the validation set as eac of the parameters are varied in order to get a better picture of whether the ranges we've set for the parameters to explore are sufficient. However the score on the final test set is used to govern the selection. Sometimes adding additional ranges to explore per perameter results in better performance on the validation set (so gridsearch selects those) but worse performance on the final test set. We tune these ranges by hand with trail and error to get the best result. 
 
+#### Model Performance
+Please see `logs/models.log` for more information on model performance
 
-# Final model selection
+
+#### Final model selection
 After experimenting with our models, the only task for which a model could outperform simply predicting the mean was the `account_median_arpc` prediction. Our Xgboost model achieved an R2 of 0.25, which is not great, but is better than simply predicting the mean. As such we will use the following approach for our prediction tasks. We will use:
-    - the xgboost model for predicting median_account_arpc
-    - mean across account for predicting account_hit_success_rate
-    - per month mean for predicting account_revenue_proportions
+- the xgboost model for predicting median_account_arpc
+- mean across account for predicting account_hit_success_rate
+- per month mean for predicting account_revenue_proportions
 
 ----
