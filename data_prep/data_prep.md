@@ -136,3 +136,18 @@ It is indeed possible to include eg the predicted median_account_arpc values whe
 # Approaches to explore for proportion prediction if we had enough data/time
 - Dirichlet regression
 - softmax with cross entropy loss function
+
+
+# Hyperparameter tuning
+For each model we've used grid search to tune the models hyperparameters. In addition we plot each models performance on the validation set as eac of the parameters are varied in order to get a better picture of whether the ranges we've set for the parameters to explore are sufficient. However the score on the final test set is used to govern the selection. Sometimes adding additional ranges to explore per perameter results in better performance on the validation set (so gridsearch selects those) but worse performance on the final test set. We tune these ranges by hand with trail and error to get the best result. 
+
+
+# Making predictions
+    Make predictions for entries that effect the expected revenue post 2024-06-30.
+    Based on model performance, we use:
+    - the xgboost model for predicting median_account_arpc
+    - mean across account for account_hit_success_rate
+    - per month mean for account_revenue_proportion
+
+----
+When determining expected revenue lets say we have only one claim wrt a particular account that has a success rate of 0.3. It's not sensible to then say that the acount has 1*0.3 claims against it. Instead when determining expected revenue we will muliply the number of claims with the amount expected and then multiply the calculated amount by the success rate to compensate.

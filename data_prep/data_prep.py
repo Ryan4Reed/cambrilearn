@@ -30,7 +30,7 @@ sync_date = pd.Timestamp("2024-02-01")
 #     return logger
 
 
-logger = get_logger('data_prep', 'logs/data_prep.log')
+logger = get_logger("data_prep", "logs/data_prep.log")
 
 
 def drop_columns(data: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
@@ -190,7 +190,7 @@ def recreate_is_closed(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
     result_date = reference_date - pd.DateOffset(
         months=17
     )  # anything 18 months prior or more would be closed
-    data[col_name] = data["date_received"] >= result_date
+    data[col_name] = data["date_received"] < result_date
     logger.info(f"Successfully created column: {col_name}")
     return data
 
@@ -213,7 +213,6 @@ def encode_industry_segment_proportions(data: pd.DataFrame) -> pd.DataFrame:
 
     data = data.merge(proportions, on="account_id", how="left")
     logger.info("Successfully adding industry_segment proportion columns")
-    pd.set_option("display.max_columns", None)
     return data
 
 
@@ -295,10 +294,21 @@ def engineer_claims_features(
     return data
 
 
-def collapse_data(data: pd.DataFrame, col_name: str) -> pd.DataFrame:
+def collapse_data(
+    data: pd.DataFrame, col_name: str, handle_is_closed: bool = False
+) -> pd.DataFrame:
     """
     Collapse data so that we have one row per account
     """
+    if handle_is_closed:
+        # Find account_ids where any is_closed is true
+        closed_accounts = data.query("is_closed")[col_name].unique()
+
+        # Set is_closed to true for those account_ids
+        data = data.assign(
+            is_closed=data["is_closed"] | data[col_name].isin(closed_accounts)
+        )
+
     data = data.drop_duplicates()
 
     dupes = data[col_name].value_counts()
@@ -380,10 +390,10 @@ def prep_claims_data() -> pd.DataFrame:
 
     # collapse datasets to one row per account_id
     acc_lev_data = collapse_data(
-        data.drop(columns=["is_closed"]), col_name="account_id"
+        data=data, col_name="account_id", handle_is_closed=True
     )
     acc_lev_pre_sync_data = collapse_data(
-        pre_sync_data.drop(columns=["is_closed"]), col_name="account_id"
+        data=pre_sync_data, col_name="account_id", handle_is_closed=True
     )
 
     # one_hot_encode commercial_subtype
@@ -428,13 +438,23 @@ def seperate_arpc_data(data: pd.DataFrame) -> pd.DataFrame:
 
     return industry_arpc, account_arpc
 
+def convert_percent_columns_to_fraction(data: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """
+    Convert percentage columns to fraction.
+    """
+    for col in columns:
+        data[col] = data[col] / 100
+    return data
 
 def prep_arpc_data() -> pd.DataFrame:
     logger.info("\n==================== ARPC DATA ====================")
     data = pd.read_csv("data/raw/arpc_values.csv")
     # drop irrelevant columns
-    data = drop_columns(data=data, columns=["account_name", "commercial_subtype", "mean_account_arpc"])
-
+    data = drop_columns(
+        data=data, columns=["account_name", "commercial_subtype", "mean_account_arpc"]
+    )
+    # change percent to fraction
+    data = convert_percent_columns_to_fraction(data=data, columns=['account_hit_success_rate', 'industry_hit_success_rate'])
     # seperate out account and industry level information
     industry_arpc, account_arpc = seperate_arpc_data(data=data)
     logger.info("Successfully prepped arpc_data")
@@ -576,7 +596,7 @@ def add_ind_rev_distributions(
 
     # Add these 18 columns to claims_data
     for month in range(1, 19):
-        col_name = f"industry_rev_month_{month}"
+        col_name = f"industry_prop_month_{month}"
         data[col_name] = predicted_distribution[:, month - 1]
 
     logger.info("Successfully added industry revenue distribution columns.")
@@ -594,7 +614,7 @@ def add_acc_rev_distributions(
         index="account_id", columns="month", values="revenue_proportion"
     )
     account_pivot.columns = [
-        f"account_rev_month_{int(month)}" for month in account_pivot.columns
+        f"account_prop_month_{int(month)}" for month in account_pivot.columns
     ]
     # make account_id column again
     account_pivot = account_pivot.reset_index()
@@ -625,50 +645,66 @@ def combine_data(
 
     return data
 
+
 def drop_median_arpc_outliers(data: pd.DataFrame, threshold: int) -> pd.DataFrame:
     """
     Drop outliers based on value of median_account_arpc.
     """
 
-    data = data[data['median_account_arpc']<= threshold]
+    data = data[data["median_account_arpc"] <= threshold]
     logger.info("Successfully removed outliers.")
     return data
+
 
 def run_data_prep():
     try:
         print(">Starting data preparation pipeline")
-        claims_data, acc_lev_claims_data, acc_lev_pre_sync_claims_data = (
+        claim_level_data, acc_level_data, acc_level_pre_sync_data = (
             prep_claims_data()
         )
+
         industry_arpc, account_arpc = prep_arpc_data()
         account_dist = prep_account_revenue_dist_data()
         industry_dist = prep_industry_revenue_dist_data()
 
-        data = combine_data(
-            claims_data=acc_lev_claims_data,
+        acc_level_data = combine_data(
+            claims_data=acc_level_data,
             industry_arpc=industry_arpc,
             account_arpc=account_arpc,
             account_dist=account_dist,
             industry_dist=industry_dist,
         )
-        pre_sync_data = combine_data(
-            claims_data=acc_lev_pre_sync_claims_data,
+        acc_level_pre_sync_data = combine_data(
+            claims_data=acc_level_pre_sync_data,
             industry_arpc=industry_arpc,
             account_arpc=account_arpc,
             account_dist=account_dist,
             industry_dist=industry_dist,
         )
 
-        pre_sync_data = drop_median_arpc_outliers(data=pre_sync_data, threshold = 5000)
+        acc_level_pre_sync_data = drop_median_arpc_outliers(data=acc_level_pre_sync_data, threshold=5000)
 
         # Write both DataFrames to csv
-        data.to_csv("data/prepped/final_data.csv", index=False)
-        pre_sync_data.to_csv("data/prepped/final_pre_sync_data.csv", index=False)
+        acc_level_data.to_csv("data/prepped/acc_level_data.csv", index=False)
+        acc_level_pre_sync_data.to_csv("data/prepped/acc_level_pre_sync_data.csv", index=False)
+        claim_level_data.to_csv("data/prepped/claim_level_data.csv", index=False)
 
         logger.info("Successfully wrote prepped data files to data/prepped folder.")
-        print('>Data preparation pipeline executed successfully')
-        return data, pre_sync_data
+        print(">Data preparation pipeline executed successfully")
+        return acc_level_data, acc_level_pre_sync_data, claim_level_data
 
     except Exception as error:
         logger.error(error)
         raise error
+
+
+def load_cached_data() -> pd.DataFrame:
+    """
+    Loading saved data from file.
+    """
+    print('>Loading data from file')
+    acc_level_data = pd.read_csv("data/prepped/acc_level_data.csv")
+    acc_level_pre_sync_data = pd.read_csv("data/prepped/acc_level_pre_sync_data.csv")
+    claim_level_data = pd.read_csv("data/prepped/claim_level_data.csv")
+    print('>Data loaded successfully')
+    return acc_level_data, acc_level_pre_sync_data, claim_level_data

@@ -96,5 +96,5 @@ def generate_pearson_correlations(data: pd.DataFrame):
     ############################################
 
     corr_rev_month = pearson_corr_vector(data, features, PROPORTION_PRED_COLUMNS)
-    plot_vector_corr_heatmap(corr_rev_month, "account_rev_month")
+    plot_vector_corr_heatmap(corr_rev_month, "account_prop_month")
     print('>Pearson coefficients generated successfully')

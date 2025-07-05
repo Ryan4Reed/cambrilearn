@@ -1,5 +1,5 @@
-data/
 cambrilearn/
 *.json
 __pycache__
 *.png
+*.csv

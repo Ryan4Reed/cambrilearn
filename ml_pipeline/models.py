@@ -11,7 +11,6 @@ import warnings
 from sklearn.exceptions import ConvergenceWarning
 
 from utils.logger import get_logger
-from utils.utils import PROPORTION_PRED_COLUMNS, AMOUNT_PRED_COL, SUCCESS_PRED_COL
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 logger = get_logger("models", "logs/models.log")
@@ -106,12 +105,12 @@ def train_and_evaluate_elasticnet(
     logger.info(f"Test R^2: {r2:.4f}")
 
     # Save model
-    m_path = f"models/elasticnet/best_model/{target}.pkl"
+    m_path = f"ml_pipeline/elasticnet/best_model/{target}.pkl"
     joblib.dump(best_model, m_path)
     logger.info(f"Saved trained model to: {m_path}")
 
     # Save grid search heatmap
-    heatmap_path = f"models/elasticnet/gs_results/{target}_heatmap.png"
+    heatmap_path = f"ml_pipeline/elasticnet/gs_results/{target}_heatmap.png"
     plot_gridsearch_heatmap(
         results=pd.DataFrame(grid_search.cv_results_),
         param_x="param_alpha",
@@ -205,7 +204,7 @@ def train_and_evaluate_xgboost(
     logger.info(f"Test R^2: {r2:.4f}")
 
     # Save model
-    m_path = f"models/xgboost/best_model/{target}.pkl"
+    m_path = f"ml_pipeline/xgboost/best_model/{target}.pkl"
     joblib.dump(best_model, m_path)
     logger.info(f"Saved trained model to: {m_path}")
 
@@ -218,7 +217,7 @@ def train_and_evaluate_xgboost(
                 results=results,
                 param=param_col,
                 target=target,
-                save_path=f"models/xgboost/gs_results/{target}_vs_{param}.png",
+                save_path=f"ml_pipeline/xgboost/gs_results/{target}_vs_{param}.png",
             )
 
     logger.info("================== DONE ==================\n")
@@ -314,7 +313,7 @@ def train_and_evaluate_xgboost_clr(
     logger.info(f"Test R^2: {r2:.4f}")
 
     # Save model
-    m_path = f"models/xgboost/best_model/proportion_rev.pkl"
+    m_path = f"ml_pipeline/xgboost/best_model/proportion_rev.pkl"
     joblib.dump(best_model, m_path)
     logger.info(f"Saved trained model to: {m_path}")
 

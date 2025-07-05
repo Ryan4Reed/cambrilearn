@@ -4,20 +4,20 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import joblib
 from utils.logger import get_logger
-logger = get_logger('scaling_data', 'logs/scaling_data.log')
+
+logger = get_logger("scaling_data", "logs/scaling_data.log")
 
 
-
-def scale_split_data(data: pd.DataFrame, features: list[str], test_size: float, random_state: int):
+def scale_split_data(
+    data: pd.DataFrame, features: list[str], test_size: float, random_state: int
+):
     """
     Scale data and split in train and test sets.
     """
     logger.info(f"\n================== Scaling Data ==================")
 
     train_data, test_data = train_test_split(
-        data,
-        test_size=test_size,
-        random_state=random_state
+        data, test_size=test_size, random_state=random_state
     )
     logger.info(f"Train rows: {len(train_data)}, Test rows: {len(test_data)}")
 
@@ -38,7 +38,6 @@ def scale_split_data(data: pd.DataFrame, features: list[str], test_size: float, 
 
     # Save scaler
     joblib.dump(scaler, "data/scaler/standard_scaler.pkl")
-    
+
     logger.info(f"Saved scaled and split data and scaler to file")
     return train_scaled, test_scaled
-
