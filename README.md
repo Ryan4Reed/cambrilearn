@@ -14,7 +14,6 @@ We have also implemented a simple user interface for interacting with the data o
 - **Model Training**: Train multiple machine learning models for prediction tasks
 - **Prediction**: Generate predictions from trained models
 - **Revenue Calculation**: Estimate revenue based on prediction outputs
-- **Modular Execution**: Run the pipeline end-to-end or individual steps as needed
 
 #### User interface
 - See the **Frontend Application** section below.
